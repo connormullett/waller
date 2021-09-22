@@ -3,10 +3,10 @@ use sha2::{Digest, Sha256};
 
 #[inline]
 #[doc(hidden)]
-pub fn get_random_bytes(num_bits: usize) -> Vec<u8> {
+pub fn get_random_bytes(num_bytes: usize) -> Vec<u8> {
     let rng = thread_rng();
     let mut rng = rand::rngs::StdRng::from_rng(rng).unwrap();
-    let mut buf = vec![0; num_bits];
+    let mut buf = vec![0; num_bytes];
     rng.fill(buf.as_mut_slice());
     buf
 }

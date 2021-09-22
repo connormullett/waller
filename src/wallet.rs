@@ -1,6 +1,7 @@
+use bip39::Mnemonic;
 use secp256k1::SecretKey;
 
-use crate::{get_random_bytes, sha256_hash_twice, KeyOptions, Network};
+use crate::{sha256_hash_twice, Network};
 
 /// Generic Error type for decoding/encoding
 /// from import formats and other errors
@@ -11,6 +12,7 @@ pub enum KeyError {
     ChecksumMismatch,
     InvalidNetworkByte,
     TooLong,
+    BadMnemonicPhrase(String),
 }
 
 /// a bitcoin private key
@@ -22,24 +24,17 @@ pub struct Key {
 }
 
 impl Key {
-    /// Create a new key
+    /// Create a new recoverable key from a BIP39 conforming mnemonic phrase
     pub fn new(
-        options: KeyOptions,
+        mnemonic: String,
         network: Network,
         compress_public_keys: bool,
     ) -> Result<Self, KeyError> {
-        let bytes = match options {
-            KeyOptions::Seed(seed) => {
-                let bytes = &mut [0u8; 32];
-                for (place, data) in bytes.iter_mut().zip(seed.as_bytes().iter()) {
-                    *place = *data
-                }
-                bytes.to_vec()
-            }
-            KeyOptions::Random => get_random_bytes(256),
-        };
+        let mnemonic =
+            Mnemonic::parse(mnemonic).map_err(|e| KeyError::BadMnemonicPhrase(e.to_string()))?;
 
-        let secret_key = SecretKey::from_slice(bytes.as_slice()).map_err(|_| KeyError::TooLong)?;
+        let secret_key =
+            SecretKey::from_slice(&mnemonic.to_seed("")).map_err(|_| KeyError::TooLong)?;
 
         Ok(Self {
             bytes: secret_key.as_ref().to_vec(),
