@@ -3,6 +3,7 @@ pub enum KeyOptions<'a> {
     Random,
 }
 
+#[derive(Debug, Clone)]
 pub enum Network {
     Mainnet,
     Testnet,

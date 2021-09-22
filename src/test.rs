@@ -7,7 +7,7 @@ mod test {
     pub fn test_new_key() {
         let options = KeyOptions::Seed("foo bar");
         let network = crate::Network::Mainnet;
-        let key = Key::new(options, network, false);
+        let key = Key::new(options, network, false).unwrap();
 
         let wif = key.to_wif();
         let key_from_wif = Key::from_wif(wif).unwrap();

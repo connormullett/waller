@@ -2,14 +2,18 @@ use secp256k1::SecretKey;
 
 use crate::{get_random_bytes, sha256_hash_twice, KeyOptions, Network};
 
-#[derive(Debug)]
-pub enum Error {
+/// Generic Error type for decoding/encoding
+/// from import formats and other errors
+#[derive(Debug, Clone)]
+pub enum KeyError {
     Decode,
     InvalidFormat,
     ChecksumMismatch,
     InvalidNetworkByte,
+    TooLong,
 }
 
+#[derive(Debug, Clone)]
 pub struct Key {
     bytes: Vec<u8>,
     network: Network,
@@ -17,7 +21,11 @@ pub struct Key {
 }
 
 impl Key {
-    pub fn new(options: KeyOptions, network: Network, compress_public_keys: bool) -> Self {
+    pub fn new(
+        options: KeyOptions,
+        network: Network,
+        compress_public_keys: bool,
+    ) -> Result<Self, KeyError> {
         let bytes = match options {
             KeyOptions::Seed(seed) => {
                 let bytes = &mut [0u8; 32];
@@ -29,34 +37,35 @@ impl Key {
             KeyOptions::Random => get_random_bytes(256),
         };
 
-        let secret_key =
-            SecretKey::from_slice(bytes.as_slice()).expect("32 bytes, within curve order");
+        let secret_key = SecretKey::from_slice(bytes.as_slice()).map_err(|_| KeyError::TooLong)?;
 
-        Self {
+        Ok(Self {
             bytes: secret_key.as_ref().to_vec(),
             network,
             compress_public_keys,
-        }
+        })
     }
 
-    pub fn from_wif(input: String) -> Result<Self, Error> {
-        let mut decoded = bs58::decode(input).into_vec().map_err(|_| Error::Decode)?;
+    pub fn from_wif(input: String) -> Result<Self, KeyError> {
+        let mut decoded = bs58::decode(input)
+            .into_vec()
+            .map_err(|_| KeyError::Decode)?;
         let checksum = decoded.split_off(decoded.len().saturating_sub(4));
         let hash_result = sha256_hash_twice(&decoded);
 
         if hash_result[..4] != checksum {
-            return Err(Error::ChecksumMismatch);
+            return Err(KeyError::ChecksumMismatch);
         }
 
         let network = match decoded.remove(0) {
             0x80 => Network::Mainnet,
             0xef => Network::Testnet,
-            _ => return Err(Error::InvalidNetworkByte),
+            _ => return Err(KeyError::InvalidNetworkByte),
         };
 
         let last_byte = match decoded.last() {
             Some(byte) => byte,
-            None => return Err(Error::InvalidFormat),
+            None => return Err(KeyError::InvalidFormat),
         };
 
         let compress_public_keys = if decoded.len() > 32 && *last_byte == 0x01 {
