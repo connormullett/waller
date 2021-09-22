@@ -1,5 +1,5 @@
 use rand::prelude::*;
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256, Sha512};
 
 #[inline]
 #[doc(hidden)]
@@ -27,6 +27,14 @@ pub fn sha256_hash_twice(input: &Vec<u8>) -> Vec<u8> {
 #[inline]
 pub fn sha256_hash(input: &Vec<u8>) -> Vec<u8> {
     let mut hasher = Sha256::new();
+    hasher.update(input);
+    let hash = hasher.finalize();
+    hash.to_vec()
+}
+
+#[inline]
+pub fn sha512_hash(input: &Vec<u8>) -> Vec<u8> {
+    let mut hasher = Sha512::new();
     hasher.update(input);
     let hash = hasher.finalize();
     hash.to_vec()

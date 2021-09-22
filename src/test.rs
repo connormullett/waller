@@ -5,13 +5,17 @@ mod test {
 
     #[test]
     pub fn test_new_key() {
+        let mnemonic = String::from(
+            "fancy lemon deliver stock castle eye answer palm nerve exchange sibling asset",
+        );
         let network = Network::Mainnet;
 
-        let key = Key::new(network, false).unwrap();
+        let key = Key::new(mnemonic, network, false).unwrap();
 
         let wif = key.to_wif();
         let key_from_wif = Key::from_wif(wif).unwrap();
 
+        println!("key :: {}", key.hex());
         assert_eq!(key_from_wif.bytes(), key.bytes())
     }
 

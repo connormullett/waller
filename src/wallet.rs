@@ -1,6 +1,7 @@
+use bip0039::Mnemonic;
 use secp256k1::SecretKey;
 
-use crate::{get_random_bytes, sha256_hash_twice, Network};
+use crate::{sha256_hash_twice, sha512_hash, Network};
 
 /// Generic Error type for decoding/encoding
 /// from import formats and other errors
@@ -24,10 +25,20 @@ pub struct Key {
 
 impl Key {
     /// Create a new recoverable key from a BIP39 conforming mnemonic phrase
-    pub fn new(network: Network, compress_public_keys: bool) -> Result<Self, KeyError> {
-        let entropy = get_random_bytes(32);
+    pub fn new(
+        mnemonic: String,
+        network: Network,
+        compress_public_keys: bool,
+    ) -> Result<Self, KeyError> {
+        let mnemonic = Mnemonic::from_phrase(mnemonic).unwrap();
+        let seed = mnemonic.to_seed("");
+        let mut hash = sha512_hash(&seed.to_vec());
+
+        // chain code
+        let _ = hash.split_off(32);
+
         let secret_key =
-            SecretKey::from_slice(&entropy).map_err(|e| KeyError::TooLong(e.to_string()))?;
+            SecretKey::from_slice(&hash).map_err(|e| KeyError::TooLong(e.to_string()))?;
 
         Ok(Self {
             bytes: secret_key.as_ref().to_vec(),
