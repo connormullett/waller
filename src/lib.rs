@@ -10,11 +10,7 @@ pub use types::*;
 pub use utils::*;
 pub use wallet::*;
 
-#[derive(Debug)]
-pub enum MnemonicError {
-    Generation(String),
-}
-
+/// Generate a mnemonic for use with HDWs
 pub fn generate_mnemonic() -> String {
     let mnemonic = Mnemonic::generate(Count::Words12);
     mnemonic.phrase().to_string()
