@@ -5,7 +5,9 @@ mod test {
 
     #[test]
     pub fn test_new_key() {
-        let mnemonic = String::from("phrase veteran chapter identify dilemma green asset crazy employ blush burger cradle render");
+        let mnemonic = String::from(
+            "fancy lemon deliver stock castle eye answer palm nerve exchange sibling asset",
+        );
         let network = Network::Mainnet;
 
         let key = Key::new(mnemonic, network, false).unwrap();
@@ -18,7 +20,7 @@ mod test {
 
     #[test]
     pub fn test_generate_mnemonic() {
-        let mnemonic = generate_mnemonic().unwrap();
-        println!("phrase {}", mnemonic);
+        let mnemonic = generate_mnemonic();
+        println!("{}", mnemonic);
     }
 }

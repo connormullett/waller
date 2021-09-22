@@ -23,3 +23,11 @@ pub fn sha256_hash_twice(input: &Vec<u8>) -> Vec<u8> {
     let hash = hasher.finalize();
     hash.to_vec()
 }
+
+#[inline]
+pub fn sha256_hash(input: &Vec<u8>) -> Vec<u8> {
+    let mut hasher = Sha256::new();
+    hasher.update(input);
+    let hash = hasher.finalize();
+    hash.to_vec()
+}

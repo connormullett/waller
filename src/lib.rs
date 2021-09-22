@@ -4,7 +4,8 @@ mod types;
 mod utils;
 mod wallet;
 
-use bip39::{Language, Mnemonic};
+use bip0039::Count;
+use bip0039::Mnemonic;
 pub use types::*;
 pub use utils::*;
 pub use wallet::*;
@@ -14,9 +15,7 @@ pub enum MnemonicError {
     Generation(String),
 }
 
-pub fn generate_mnemonic() -> Result<String, MnemonicError> {
-    let entropy = get_random_bytes(16);
-    let mnemonic = Mnemonic::from_entropy_in(Language::English, &entropy)
-        .map_err(|e| MnemonicError::Generation(e.to_string()))?;
-    Ok(mnemonic.to_string())
+pub fn generate_mnemonic() -> String {
+    let mnemonic = Mnemonic::generate(Count::Words12);
+    mnemonic.phrase().to_string()
 }

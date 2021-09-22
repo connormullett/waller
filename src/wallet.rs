@@ -1,7 +1,7 @@
-use bip39::Mnemonic;
+use bip0039::Mnemonic;
 use secp256k1::SecretKey;
 
-use crate::{sha256_hash_twice, Network};
+use crate::{sha256_hash, sha256_hash_twice, Network};
 
 /// Generic Error type for decoding/encoding
 /// from import formats and other errors
@@ -11,7 +11,7 @@ pub enum KeyError {
     InvalidFormat,
     ChecksumMismatch,
     InvalidNetworkByte,
-    TooLong,
+    TooLong(String),
     BadMnemonicPhrase(String),
 }
 
@@ -30,11 +30,11 @@ impl Key {
         network: Network,
         compress_public_keys: bool,
     ) -> Result<Self, KeyError> {
-        let mnemonic =
-            Mnemonic::parse(mnemonic).map_err(|e| KeyError::BadMnemonicPhrase(e.to_string()))?;
+        let mnemonic = Mnemonic::from_phrase(mnemonic).unwrap();
 
+        let hash = sha256_hash(&mnemonic.to_seed("").to_vec());
         let secret_key =
-            SecretKey::from_slice(&mnemonic.to_seed("")).map_err(|_| KeyError::TooLong)?;
+            SecretKey::from_slice(&hash).map_err(|e| KeyError::TooLong(e.to_string()))?;
 
         Ok(Self {
             bytes: secret_key.as_ref().to_vec(),
