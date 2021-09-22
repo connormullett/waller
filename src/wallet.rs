@@ -107,18 +107,22 @@ impl Key {
         bs58::encode(key).into_string()
     }
 
+    /// return a reference to the underlying key
     pub fn bytes(&self) -> &[u8] {
         self.bytes.as_ref()
     }
 
+    /// return the network associated with this key
     pub fn network(&self) -> &Network {
         &self.network
     }
 
+    /// check if public key compression is enabled
     pub fn compress_public_keys(&self) -> bool {
         self.compress_public_keys
     }
 
+    /// get a hex encoded string of the underlying key
     pub fn hex(&self) -> String {
         hex::encode(&self.bytes)
     }
