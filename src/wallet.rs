@@ -13,6 +13,7 @@ pub enum KeyError {
     TooLong,
 }
 
+/// a bitcoin private key
 #[derive(Debug, Clone)]
 pub struct Key {
     bytes: Vec<u8>,
@@ -21,6 +22,7 @@ pub struct Key {
 }
 
 impl Key {
+    /// Create a new key
     pub fn new(
         options: KeyOptions,
         network: Network,
@@ -46,6 +48,7 @@ impl Key {
         })
     }
 
+    /// create a new key given a wallet import format string
     pub fn from_wif(input: String) -> Result<Self, KeyError> {
         let mut decoded = bs58::decode(input)
             .into_vec()
@@ -82,6 +85,7 @@ impl Key {
         })
     }
 
+    /// return the wif representation of the key
     pub fn to_wif(&self) -> String {
         let mut key = self.bytes.clone();
 
