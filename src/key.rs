@@ -1,7 +1,7 @@
 use bip0039::Mnemonic;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 
-use crate::{sha256_hash_twice, sha512_hash, Network};
+use crate::{ripemd160_hash, sha256_hash, sha256_hash_twice, sha512_hash, Network};
 
 /// Generic Error type for decoding/encoding
 /// from import formats and other errors
@@ -113,16 +113,31 @@ impl Key {
             SecretKey::from_slice(self.bytes()).map_err(|e| KeyError::Other(e.to_string()))?;
 
         let key = PublicKey::from_secret_key(&Secp256k1::new(), &secret);
+
         let key = match self.compress_public_keys {
             true => key.serialize().to_vec(),
-            false => key.to_string().as_bytes().to_vec(),
+            false => key.serialize_uncompressed().to_vec(),
         };
+
         Ok(key)
     }
 
-    ///
-    pub fn address(&self) -> String {
-        String::new()
+    /// generate an address from this key
+    pub fn address(&self) -> Result<String, KeyError> {
+        let pubkey = self.new_public_key()?;
+        let f_hash = sha256_hash(&pubkey);
+        let mut encrypted_pubkey = ripemd160_hash(&f_hash);
+
+        match self.network {
+            Network::Mainnet => encrypted_pubkey.insert(0, 0x00),
+            Network::Testnet => encrypted_pubkey.insert(0, 0x6f),
+        }
+
+        let mut checksum = sha256_hash_twice(&encrypted_pubkey);
+
+        encrypted_pubkey.append(&mut checksum);
+
+        Ok(bs58::encode(&encrypted_pubkey).into_string())
     }
 
     /// return a reference to the underlying key
