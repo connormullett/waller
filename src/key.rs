@@ -22,6 +22,7 @@ pub struct Key {
     bytes: Vec<u8>,
     network: Network,
     compress_public_keys: bool,
+    chain_code: Vec<u8>,
 }
 
 impl Key {
@@ -35,8 +36,7 @@ impl Key {
         let seed = mnemonic.to_seed("");
         let mut hash = sha512_hash(&seed.to_vec());
 
-        // chain code
-        let _ = hash.split_off(32);
+        let chain_code = hash.split_off(32);
 
         let secret_key =
             SecretKey::from_slice(&hash).map_err(|e| KeyError::TooLong(e.to_string()))?;
@@ -45,6 +45,7 @@ impl Key {
             bytes: secret_key.as_ref().to_vec(),
             network,
             compress_public_keys,
+            chain_code,
         })
     }
 
@@ -78,10 +79,17 @@ impl Key {
             false
         };
 
+        let mnemonic = Mnemonic::from_entropy(decoded.clone()).map_err(|_| KeyError::Decode)?;
+        let seed = mnemonic.to_seed("");
+        let mut hash = sha512_hash(&seed.to_vec());
+
+        let chain_code = hash.split_off(32);
+
         Ok(Self {
             bytes: decoded,
             network,
             compress_public_keys,
+            chain_code,
         })
     }
 
