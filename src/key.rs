@@ -167,4 +167,23 @@ impl Key {
     pub fn hex(&self) -> String {
         hex::encode(&self.bytes)
     }
+
+    /// return the extended private key. This is the private key
+    /// with the chain code appended to the end. Used for deriving
+    /// child private keys in HD wallets
+    pub fn extended_private_key(&self) -> Vec<u8> {
+        let mut bytes = self.bytes.clone();
+
+        bytes.append(&mut self.chain_code.clone());
+        bytes
+    }
+
+    /// return the extended public key. This is the public key
+    /// with the chain code appended to the end. Used for deriving
+    /// child public keys in HD wallets
+    pub fn extended_public_key(&self) -> Result<Vec<u8>, KeyError> {
+        let mut pubkey = self.new_public_key()?;
+        pubkey.append(&mut self.chain_code.clone());
+        Ok(pubkey)
+    }
 }
