@@ -122,7 +122,7 @@ impl Key {
         Ok(key)
     }
 
-    /// generate an address from this key
+    /// generate a base58 encoded address from this key
     pub fn address(&self) -> Result<String, KeyError> {
         let pubkey = self.new_public_key()?;
         let f_hash = sha256_hash(&pubkey);
