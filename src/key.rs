@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use bip0039::Mnemonic;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 
@@ -14,6 +16,23 @@ pub enum KeyError {
     TooLong(String),
     BadMnemonicPhrase(String),
     Other(String),
+}
+
+impl Display for KeyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let string = match self {
+            KeyError::Decode => "Error decoding key",
+            KeyError::InvalidFormat => "Key was not in a valid format",
+            KeyError::ChecksumMismatch => "Checksum verification failed",
+            KeyError::InvalidNetworkByte => "Network byte was invalid",
+            KeyError::TooLong(error) => &format!("Key was too long in length: {}", error),
+            KeyError::BadMnemonicPhrase(error) => {
+                &format!("Mnemonic prhase was incorrect: {}", error)
+            }
+            KeyError::Other(error) => &format!("an error occured: {}", error),
+        };
+        write!(f, "{}", string.to_string())
+    }
 }
 
 /// a bitcoin private key
