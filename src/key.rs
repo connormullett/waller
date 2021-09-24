@@ -1,6 +1,6 @@
 use bip0039::Mnemonic;
 use ecdsa::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
-use k256::{AffinePoint, EncodedPoint, ProjectivePoint};
+use k256::{EncodedPoint, ProjectivePoint};
 use num_bigint::BigInt;
 use secp256k1::{constants::CURVE_ORDER, PublicKey, Secp256k1, SecretKey};
 
@@ -223,23 +223,35 @@ impl Key {
             return Err(KeyError::IndexOutOfRange);
         }
 
-        let mut pubkey = self.new_public_key()?;
+        // create the inputs for hmac-sha512 (original public key || index)
+        let original_pubkey = self.new_public_key()?;
+        let mut pubkey = original_pubkey.clone();
         pubkey.append(&mut index.to_le_bytes().to_vec());
 
+        // hash the inputs and split off the chain code right half
         let mut hash = hmac_sha512_hash(&pubkey, &self.chain_code);
         let mut chain_code = hash.split_off(32);
 
-        let point_hmac = EncodedPoint::from_bytes(&pubkey).unwrap();
-        let point_hmac: ProjectivePoint =
-            AffinePoint::from_encoded_point(&point_hmac).unwrap().into();
+        // use hash as secret key to derive point
+        let hash = SecretKey::from_slice(hash.as_slice()).unwrap();
+        let point_hmac = PublicKey::from_secret_key(&Secp256k1::new(), &hash).serialize();
 
-        let point_public = EncodedPoint::from_bytes(&self.bytes).unwrap();
-        let point_public = AffinePoint::from_encoded_point(&point_public).unwrap();
+        // convert slice from point to create another point type from this bullshit
+        let point_hmac = EncodedPoint::from_bytes(&point_hmac).unwrap();
+        let point_hmac = ProjectivePoint::from_encoded_point(&point_hmac).unwrap();
 
+        // create a point from the original public key
+        let point_public = EncodedPoint::from_bytes(&original_pubkey).unwrap();
+        let point_public = ProjectivePoint::from_encoded_point(&point_public).unwrap();
+
+        // add the two points together
         let point = point_hmac + point_public;
-        let point = point.to_encoded_point(true);
-        let mut bytes = point.to_bytes().to_vec();
 
+        // compress the point
+        let point = point.to_encoded_point(true);
+
+        // append the chain to the public key to create the extended public key
+        let mut bytes = point.to_bytes().to_vec();
         bytes.append(&mut chain_code);
         Ok(bytes)
     }
