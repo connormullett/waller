@@ -186,7 +186,9 @@ impl Key {
         key_type: ChildKeyType,
     ) -> Result<Key, KeyError> {
         match key_type {
-            ChildKeyType::Normal if index > 2147483647 => return Err(KeyError::IndexOutOfRange),
+            ChildKeyType::Normal if index > 2147483647 || index < 0 => {
+                return Err(KeyError::IndexOutOfRange)
+            }
             ChildKeyType::Hardened if index < 2147483647 || index > 4294967295 => {
                 return Err(KeyError::IndexOutOfRange)
             }
@@ -216,7 +218,17 @@ impl Key {
     }
 
     /// Create normal child public key
-    pub fn derive_normal_child_public_key(&self) -> Vec<u8> {
+    pub fn derive_normal_child_public_key(&self, index: u32) -> Result<Vec<u8>, KeyError> {
+        if index > 2147483647 {
+            return Err(KeyError::IndexOutOfRange);
+        }
+
+        let mut pubkey = self.new_public_key()?;
+        pubkey.append(&mut index.to_le_bytes().to_vec());
+
+        let mut hash = hmac_sha512_hash(&pubkey, &self.chain_code);
+        let chain_code = hash.split_off(32);
+
         todo!()
     }
 }
