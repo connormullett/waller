@@ -218,7 +218,7 @@ impl Key {
     }
 
     /// Create normal, compressed child extended public key
-    pub fn derive_normal_child_public_key(&self, index: u32) -> Result<Vec<u8>, KeyError> {
+    pub fn derive_child_public_key(&self, index: u32) -> Result<Vec<u8>, KeyError> {
         if index > 2147483647 {
             return Err(KeyError::IndexOutOfRange);
         }

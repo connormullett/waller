@@ -10,7 +10,7 @@ pub fn test_new_key() {
     );
     let network = Network::Mainnet;
 
-    let key = Key::new(mnemonic, network, false).unwrap();
+    let key = Key::new(mnemonic, network, true).unwrap();
 
     let wif = key.to_wif();
     let key_from_wif = Key::from_wif(wif).unwrap();
@@ -58,6 +58,20 @@ pub fn test_derive_child_private_key() {
         "8c5c15f7f71c58f98bd0c64d77d982a210dd62d049806daef8affb06e29d7a32".to_string(),
         child_private_key.hex()
     );
+}
+
+#[test]
+pub fn test_derive_child_public_key() {
+    let mnemonic = String::from(
+        "fancy lemon deliver stock castle eye answer palm nerve exchange sibling asset",
+    );
+    let network = Network::Mainnet;
+
+    let key = Key::new(mnemonic, network, true).unwrap();
+
+    let pubkey = key.derive_child_public_key(1).unwrap();
+
+    println!("pubkey {:?}", pubkey);
 }
 
 #[test]
