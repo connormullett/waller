@@ -1,7 +1,11 @@
 use bip0039::Mnemonic;
-use secp256k1::{PublicKey, Secp256k1, SecretKey};
+use num_bigint::BigInt;
+use secp256k1::{constants::CURVE_ORDER, PublicKey, Secp256k1, SecretKey};
 
-use crate::{ripemd160_hash, sha256_hash, sha256_hash_twice, sha512_hash, KeyError, Network};
+use crate::{
+    hmac_sha512_hash, ripemd160_hash, sha256_hash, sha256_hash_twice, sha512_hash, KeyError,
+    Network,
+};
 
 /// a bitcoin private key
 #[derive(Debug, Clone)]
@@ -175,8 +179,29 @@ impl Key {
     }
 
     /// Create a non-hardened child private key
-    pub fn derive_normal_child_private_key(&self) -> Vec<u8> {
-        todo!()
+    pub fn derive_normal_child_private_key(&self, index: u32) -> Result<Key, KeyError> {
+        let mut pubkey = self.new_public_key()?;
+        pubkey.append(&mut index.to_le_bytes().to_vec());
+
+        let mut hash = hmac_sha512_hash(&pubkey, &self.chain_code);
+
+        let chain_code = hash.split_off(32);
+
+        let private_key = match BigInt::parse_bytes(&hash, 10) {
+            Some(value) => {
+                let curve_order = BigInt::parse_bytes(&CURVE_ORDER, 10).unwrap();
+                let key = value % curve_order;
+                key.to_signed_bytes_le()
+            }
+            None => return Err(KeyError::Other("Could not derive private key".to_string())),
+        };
+
+        Ok(Key {
+            bytes: private_key,
+            network: self.network,
+            chain_code,
+            compress_public_keys: self.compress_public_keys,
+        })
     }
 
     /// Create a hardened child private key

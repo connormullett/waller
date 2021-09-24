@@ -1,4 +1,6 @@
 #![allow(unused_imports)]
+use secp256k1::constants::CURVE_ORDER;
+
 use crate::{generate_mnemonic, Key, Network};
 
 #[test]
