@@ -3,8 +3,8 @@ use num_bigint::BigInt;
 use secp256k1::{constants::CURVE_ORDER, PublicKey, Secp256k1, SecretKey};
 
 use crate::{
-    hmac_sha512_hash, ripemd160_hash, sha256_hash, sha256_hash_twice, sha512_hash, KeyError,
-    Network,
+    hmac_sha512_hash, ripemd160_hash, sha256_hash, sha256_hash_twice, sha512_hash, ChildKeyType,
+    KeyError, Network,
 };
 
 /// a bitcoin private key
@@ -178,8 +178,21 @@ impl Key {
         Ok(pubkey)
     }
 
-    /// Create a non-hardened child private key
-    pub fn derive_normal_child_private_key(&self, index: u32) -> Result<Key, KeyError> {
+    /// Create a child private key
+    /// can be either normal or hardened
+    pub fn derive_child_private_key(
+        &self,
+        index: usize,
+        key_type: ChildKeyType,
+    ) -> Result<Key, KeyError> {
+        match key_type {
+            ChildKeyType::Normal if index > 2147483647 => return Err(KeyError::IndexOutOfRange),
+            ChildKeyType::Hardened if index < 2147483647 || index > 4294967295 => {
+                return Err(KeyError::IndexOutOfRange)
+            }
+            _ => {}
+        }
+
         let mut pubkey = self.new_public_key()?;
         pubkey.append(&mut index.to_le_bytes().to_vec());
 
@@ -200,11 +213,6 @@ impl Key {
             chain_code,
             compress_public_keys: self.compress_public_keys,
         })
-    }
-
-    /// Create a hardened child private key
-    pub fn derive_hardened_child_private_key(&self) -> Vec<u8> {
-        todo!()
     }
 
     /// Create normal child public key

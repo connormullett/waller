@@ -23,6 +23,7 @@ pub enum KeyError {
     InvalidFormat,
     ChecksumMismatch,
     InvalidNetworkByte,
+    IndexOutOfRange,
     TooLong(String),
     BadMnemonicPhrase(String),
     Other(String),
@@ -40,7 +41,15 @@ impl Display for KeyError {
                 format!("Mnemonic prhase was incorrect: {}", error)
             }
             KeyError::Other(error) => format!("an error occured: {}", error),
+            KeyError::IndexOutOfRange => {
+                "The index used for child key derivation was too large".to_string()
+            }
         };
         write!(f, "{}", string)
     }
+}
+
+pub enum ChildKeyType {
+    Normal,
+    Hardened,
 }

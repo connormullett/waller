@@ -50,10 +50,12 @@ pub fn test_derive_child_private_key() {
 
     let key = Key::new(mnemonic, network, true).unwrap();
 
-    let child_private_key = key.derive_normal_child_private_key(1).unwrap();
+    let child_private_key = key
+        .derive_child_private_key(1, crate::ChildKeyType::Normal)
+        .unwrap();
 
     assert_eq!(
-        "87e7881fabf12a448823f14aa1f79483040ae8358e4995d2192d40b06d29ff37".to_string(),
+        "8c5c15f7f71c58f98bd0c64d77d982a210dd62d049806daef8affb06e29d7a32".to_string(),
         child_private_key.hex()
     );
 }
