@@ -9,6 +9,7 @@ edition = "2018"
 rand = { version = "0.8.4", features = ["std_rng"] }
 secp256k1 = { version = "0.20.3", features = ["rand"] }
 sha2 = "0.9.8"
+hmac-sha512 = "0.1.9"
 ripemd160 = "0.9.1"
 hex = "0.4.3"
 bs58 = "0.4.0"

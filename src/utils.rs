@@ -1,3 +1,4 @@
+use hmac_sha512::HMAC;
 use rand::prelude::*;
 use ripemd160::Ripemd160;
 use sha2::{Digest, Sha256, Sha512};
@@ -49,4 +50,11 @@ pub fn ripemd160_hash(input: &Vec<u8>) -> Vec<u8> {
     let mut hasher = Ripemd160::new();
     hasher.update(input);
     hasher.finalize().to_vec()
+}
+
+#[inline]
+#[doc(hidden)]
+pub fn hmac_sha512_hash(input: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
+    let digest = HMAC::mac(input, key);
+    digest.to_vec()
 }

@@ -173,4 +173,19 @@ impl Key {
         pubkey.append(&mut self.chain_code.clone());
         Ok(pubkey)
     }
+
+    /// Create a non-hardened child private key
+    pub fn derive_normal_child_private_key(&self) -> Vec<u8> {
+        todo!()
+    }
+
+    /// Create a hardened child private key
+    pub fn derive_hardened_child_private_key(&self) -> Vec<u8> {
+        todo!()
+    }
+
+    /// Create normal child public key
+    pub fn derive_normal_child_public_key(&self) -> Vec<u8> {
+        todo!()
+    }
 }
