@@ -8,7 +8,9 @@ edition = "2018"
 [dependencies]
 rand = { version = "0.8.4", features = ["std_rng"] }
 secp256k1 = { version = "0.20.3", features = ["rand"] }
+k256 = { version = "0.9.6", features = ["ecdsa-core", "arithmetic"]}
 sha2 = "0.9.8"
+ecdsa = "0.12.4"
 hmac-sha512 = "0.1.9"
 ripemd160 = "0.9.1"
 hex = "0.4.3"

@@ -1,4 +1,6 @@
 use bip0039::Mnemonic;
+use ecdsa::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
+use k256::{AffinePoint, EncodedPoint, ProjectivePoint};
 use num_bigint::BigInt;
 use secp256k1::{constants::CURVE_ORDER, PublicKey, Secp256k1, SecretKey};
 
@@ -186,9 +188,7 @@ impl Key {
         key_type: ChildKeyType,
     ) -> Result<Key, KeyError> {
         match key_type {
-            ChildKeyType::Normal if index > 2147483647 || index < 0 => {
-                return Err(KeyError::IndexOutOfRange)
-            }
+            ChildKeyType::Normal if index > 2147483647 => return Err(KeyError::IndexOutOfRange),
             ChildKeyType::Hardened if index < 2147483647 || index > 4294967295 => {
                 return Err(KeyError::IndexOutOfRange)
             }
@@ -217,7 +217,7 @@ impl Key {
         })
     }
 
-    /// Create normal child public key
+    /// Create normal, compressed child extended public key
     pub fn derive_normal_child_public_key(&self, index: u32) -> Result<Vec<u8>, KeyError> {
         if index > 2147483647 {
             return Err(KeyError::IndexOutOfRange);
@@ -227,8 +227,20 @@ impl Key {
         pubkey.append(&mut index.to_le_bytes().to_vec());
 
         let mut hash = hmac_sha512_hash(&pubkey, &self.chain_code);
-        let chain_code = hash.split_off(32);
+        let mut chain_code = hash.split_off(32);
 
-        todo!()
+        let point_hmac = EncodedPoint::from_bytes(&pubkey).unwrap();
+        let point_hmac: ProjectivePoint =
+            AffinePoint::from_encoded_point(&point_hmac).unwrap().into();
+
+        let point_public = EncodedPoint::from_bytes(&self.bytes).unwrap();
+        let point_public = AffinePoint::from_encoded_point(&point_public).unwrap();
+
+        let point = point_hmac + point_public;
+        let point = point.to_encoded_point(true);
+        let mut bytes = point.to_bytes().to_vec();
+
+        bytes.append(&mut chain_code);
+        Ok(bytes)
     }
 }
