@@ -187,14 +187,12 @@ impl Key {
 
         let chain_code = hash.split_off(32);
 
-        let private_key = match BigInt::parse_bytes(&hash, 10) {
-            Some(value) => {
-                let curve_order = BigInt::parse_bytes(&CURVE_ORDER, 10).unwrap();
-                let key = value % curve_order;
-                key.to_signed_bytes_le()
-            }
-            None => return Err(KeyError::Other("Could not derive private key".to_string())),
-        };
+        let curve_order = BigInt::from_signed_bytes_le(&CURVE_ORDER);
+        let hash_int = BigInt::from_signed_bytes_le(&hash);
+        let prev_key = BigInt::from_signed_bytes_le(&self.bytes());
+
+        let key = (hash_int + prev_key) % curve_order;
+        let private_key = key.to_signed_bytes_le();
 
         Ok(Key {
             bytes: private_key,
