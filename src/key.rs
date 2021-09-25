@@ -198,7 +198,10 @@ impl Key {
         let mut pubkey = self.new_public_key()?;
         pubkey.append(&mut index.to_le_bytes().to_vec());
 
-        let mut hash = hmac_sha512_hash(&pubkey, &self.chain_code);
+        let mut hash = match key_type {
+            ChildKeyType::Normal => hmac_sha512_hash(&pubkey, &self.chain_code),
+            ChildKeyType::Hardened => hmac_sha512_hash(&self.bytes().to_vec(), &self.chain_code),
+        };
 
         let chain_code = hash.split_off(32);
 
