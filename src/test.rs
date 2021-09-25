@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 use secp256k1::constants::CURVE_ORDER;
 
-use crate::{generate_mnemonic, Key, Network};
+use crate::{generate_mnemonic, ChildKeyType, Key, Network};
 
 #[test]
 pub fn test_new_key() {
@@ -42,7 +42,7 @@ pub fn test_public_key() {
 }
 
 #[test]
-pub fn test_derive_child_private_key() {
+pub fn test_derive_child_normal_private_key() {
     let mnemonic = String::from(
         "fancy lemon deliver stock castle eye answer palm nerve exchange sibling asset",
     );
@@ -61,6 +61,25 @@ pub fn test_derive_child_private_key() {
 }
 
 #[test]
+pub fn test_derive_child_hardened_private_key() {
+    let mnemonic = String::from(
+        "fancy lemon deliver stock castle eye answer palm nerve exchange sibling asset",
+    );
+    let network = Network::Mainnet;
+
+    let key = Key::new(mnemonic, network, true).unwrap();
+
+    let child_private_key = key
+        .derive_child_private_key(2147483648, ChildKeyType::Hardened)
+        .unwrap();
+
+    assert_eq!(
+        "cbecb80118ebcce68e9d38b11b52beb29be4d5beea4a80230e6f7899fff0a715".to_string(),
+        child_private_key.hex()
+    );
+}
+
+#[test]
 pub fn test_derive_child_public_key() {
     let mnemonic = String::from(
         "fancy lemon deliver stock castle eye answer palm nerve exchange sibling asset",
@@ -71,7 +90,7 @@ pub fn test_derive_child_public_key() {
 
     let pubkey = key.derive_child_public_key(1).unwrap();
 
-    println!("pubkey {:?}", pubkey);
+    assert_eq!("028be92ede5feab623905b30d1b1d87d477c1524ddb6f8f98ca122fbcf7e59870c5a7832455a67d351cf99fd030bb1d9a558f6a0cadb9bf9144c7010636f4224c4", hex::encode(pubkey));
 }
 
 #[test]
