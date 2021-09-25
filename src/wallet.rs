@@ -1,7 +1,9 @@
-use crate::{generate_mnemonic, Key, KeyCreationOutput, KeyError, Network};
+use std::{collections::HashMap, path::PathBuf};
+
+use crate::{generate_mnemonic, HDKeyPair, Key, KeyCreationOutput, KeyError, Network};
 
 pub struct Wallet {
-    keys: Vec<Key>,
+    keys: HashMap<String, HDKeyPair>,
     network: Network,
 }
 
@@ -9,13 +11,25 @@ impl Wallet {
     /// Create a new wallet
     pub fn new(network: Network) -> Self {
         Self {
-            keys: vec![],
+            keys: HashMap::new(),
             network,
         }
     }
 
-    /// return a vector of the keys in the wallet
-    pub fn keys(&self) -> &Vec<Key> {
+    /// Restore an HD wallet, all keys lost can be recovered
+    /// from the mnemonic seed used to build it, however generating
+    /// every key can be very expensive computationally
+    pub fn restore(_mnemonic: String, _network: Network) -> Self {
+        todo!()
+    }
+
+    /// Create a wallet from an existing backedup wallet file
+    pub fn from_wallet_file(_path: PathBuf) -> Self {
+        todo!()
+    }
+
+    /// return a map of the keys in the wallet
+    pub fn keys(&self) -> &HashMap<String, HDKeyPair> {
         &self.keys
     }
 
@@ -29,11 +43,11 @@ impl Wallet {
     /// if an error occurs, the key that failed is within the error
     pub fn addresses(&self) -> Result<Vec<String>, KeyError> {
         let mut output = vec![];
-        for key in &self.keys {
-            let address = key.address().map_err(|e| {
+        for (_, key) in &self.keys {
+            let address = key.private_key.address().map_err(|e| {
                 KeyError::Other(format!(
                     "Error converting key `{}`: {}",
-                    key.hex(),
+                    key.private_key.hex(),
                     e.to_string()
                 ))
             })?;
@@ -42,17 +56,24 @@ impl Wallet {
         Ok(output)
     }
 
-    /// create a new key from a new mnemonic
-    /// and add it to the wallet. returns
-    /// the mnemonic used and the key as a
-    /// KeyCreationOutput object
-    pub fn generate_key(
+    pub fn generate_master_key(
         &mut self,
         compress_public_keys: bool,
     ) -> Result<KeyCreationOutput, KeyError> {
         let mnemonic = generate_mnemonic();
         let key = Key::new(mnemonic.clone(), self.network, compress_public_keys)?;
-        self.keys.push(key.clone());
+        let pubkey = key.new_public_key()?;
+
+        let keypair = HDKeyPair {
+            private_key: key.clone(),
+            public_key: pubkey,
+            key_type: crate::KeyType::Master,
+            index: None,
+        };
+
+        let path = String::from("m");
+
+        self.keys.insert(path, keypair);
 
         Ok(KeyCreationOutput { mnemonic, key })
     }

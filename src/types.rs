@@ -49,7 +49,24 @@ impl Display for KeyError {
     }
 }
 
+/// Used to determine what type of key
+/// the child will be
 pub enum ChildKeyType {
     Normal,
     Hardened,
+}
+
+/// The type of key
+pub enum KeyType {
+    Master,
+    Normal,
+    Hardened,
+}
+
+/// An HD Key pair that can derive children keys
+pub struct HDKeyPair {
+    pub private_key: Key,
+    pub public_key: Vec<u8>,
+    pub key_type: KeyType,
+    pub index: Option<usize>,
 }
