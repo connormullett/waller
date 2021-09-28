@@ -49,6 +49,8 @@ impl Display for KeyError {
     }
 }
 
+pub enum WalletError {}
+
 /// Used to determine what type of key
 /// the child will be
 pub enum ChildKeyType {
@@ -57,6 +59,7 @@ pub enum ChildKeyType {
 }
 
 /// The type of key
+#[derive(Clone)]
 pub enum KeyType {
     Master,
     Normal,
@@ -64,9 +67,26 @@ pub enum KeyType {
 }
 
 /// An HD Key pair that can derive children keys
-pub struct HDKeyPair {
+#[derive(Clone)]
+pub struct KeyPair {
     pub private_key: Key,
     pub public_key: Vec<u8>,
     pub key_type: KeyType,
     pub index: Option<usize>,
+}
+
+#[derive(Clone)]
+pub struct Node {
+    pub parent: Option<NodeId>,
+    pub previous_sibling: Option<NodeId>,
+    pub next_sibling: Option<NodeId>,
+    pub first_child: Option<NodeId>,
+    pub last_child: Option<NodeId>,
+
+    pub key_pair: KeyPair,
+}
+
+#[derive(Clone)]
+pub struct NodeId {
+    pub index: usize,
 }

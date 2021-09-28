@@ -1,18 +1,25 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
-use crate::{generate_mnemonic, HDKeyPair, Key, KeyCreationOutput, KeyError, Network};
+use crate::{
+    generate_mnemonic, Key, KeyCreationOutput, KeyError, KeyPair, Network, Node, NodeId,
+    WalletError,
+};
 
 pub struct Wallet {
-    keys: HashMap<String, HDKeyPair>,
+    root: Option<NodeId>,
     network: Network,
+    keys: Vec<Node>,
+    path: PathBuf,
 }
 
 impl Wallet {
     /// Create a new wallet
-    pub fn new(network: Network) -> Self {
+    pub fn new(network: Network, path: PathBuf) -> Self {
         Self {
-            keys: HashMap::new(),
+            keys: vec![],
+            root: None,
             network,
+            path,
         }
     }
 
@@ -28,8 +35,18 @@ impl Wallet {
         todo!()
     }
 
+    /// create a normally derived wallet
+    pub fn init(&mut self, mnemonic: String, network: Network) -> Self {
+        todo!()
+    }
+
+    /// write the contents of self.keys to self.path as json
+    fn flush(&self) -> Result<(), WalletError> {
+        todo!()
+    }
+
     /// return a map of the keys in the wallet
-    pub fn keys(&self) -> &HashMap<String, HDKeyPair> {
+    pub fn keys(&self) -> &Vec<Node> {
         &self.keys
     }
 
@@ -39,15 +56,25 @@ impl Wallet {
         &self.network
     }
 
+    /// get the path where keys are being saved to disk
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+
+    pub fn set_path(&mut self, path: PathBuf) -> Result<(), WalletError> {
+        self.path = path;
+        Ok(())
+    }
+
     /// returns a vec of addresses of all keys in the wallet
     /// if an error occurs, the key that failed is within the error
     pub fn addresses(&self) -> Result<Vec<String>, KeyError> {
         let mut output = vec![];
-        for (_, key) in &self.keys {
-            let address = key.private_key.address().map_err(|e| {
+        for Node { key_pair, .. } in &self.keys {
+            let address = key_pair.private_key.address().map_err(|e| {
                 KeyError::Other(format!(
                     "Error converting key `{}`: {}",
-                    key.private_key.hex(),
+                    key_pair.private_key.hex(),
                     e.to_string()
                 ))
             })?;
@@ -64,17 +91,37 @@ impl Wallet {
         let key = Key::new(mnemonic.clone(), self.network, compress_public_keys)?;
         let pubkey = key.new_public_key()?;
 
-        let keypair = HDKeyPair {
+        let keypair = KeyPair {
             private_key: key.clone(),
             public_key: pubkey,
             key_type: crate::KeyType::Master,
             index: None,
         };
 
-        let path = String::from("m");
+        let node = Node {
+            parent: None,
+            previous_sibling: None,
+            next_sibling: None,
+            first_child: None,
+            last_child: None,
+            key_pair: keypair,
+        };
 
-        self.keys.insert(path, keypair);
+        let index = self.insert(node);
+        self.root = Some(index);
 
         Ok(KeyCreationOutput { mnemonic, key })
+    }
+
+    /// insert a keypair node to self.keys
+    fn insert(&mut self, node: Node) -> NodeId {
+        let next_index = self.keys.len();
+        self.keys.push(node);
+        NodeId { index: next_index }
+    }
+
+    /// get a keypair from self.keys
+    fn get(&self, node_id: NodeId) -> Option<Node> {
+        self.keys.get(node_id.index).cloned()
     }
 }
