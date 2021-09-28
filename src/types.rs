@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::Key;
+use crate::{Key, Wallet};
 
 /// bitcoin networks
 #[derive(Debug, Clone, Copy)]
@@ -13,6 +13,12 @@ pub enum Network {
 pub struct KeyCreationOutput {
     pub mnemonic: String,
     pub key: Key,
+}
+
+#[derive(Debug, Clone)]
+pub struct WalletCreationOutput {
+    pub mnemonic: String,
+    pub wallet: Wallet,
 }
 
 /// Generic Error type for decoding/encoding
@@ -49,7 +55,9 @@ impl Display for KeyError {
     }
 }
 
-pub enum WalletError {}
+pub enum WalletError {
+    Key(String),
+}
 
 /// Used to determine what type of key
 /// the child will be
@@ -59,7 +67,7 @@ pub enum ChildKeyType {
 }
 
 /// The type of key
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum KeyType {
     Master,
     Normal,
@@ -67,7 +75,7 @@ pub enum KeyType {
 }
 
 /// An HD Key pair that can derive children keys
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct KeyPair {
     pub private_key: Key,
     pub public_key: Vec<u8>,
@@ -75,7 +83,7 @@ pub struct KeyPair {
     pub index: Option<usize>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Node {
     pub parent: Option<NodeId>,
     pub previous_sibling: Option<NodeId>,
@@ -86,7 +94,7 @@ pub struct Node {
     pub key_pair: KeyPair,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct NodeId {
     pub index: usize,
 }

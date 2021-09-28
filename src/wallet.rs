@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
 use crate::{
-    generate_mnemonic, Key, KeyCreationOutput, KeyError, KeyPair, Network, Node, NodeId,
+    generate_mnemonic, Key, KeyCreationOutput, KeyError, KeyPair, KeyType, Network, Node, NodeId,
     WalletError,
 };
 
+#[derive(Debug, Clone)]
 pub struct Wallet {
     root: Option<NodeId>,
     network: Network,
@@ -36,12 +37,40 @@ impl Wallet {
     }
 
     /// create a normally derived wallet
-    pub fn init(&mut self, mnemonic: String, network: Network) -> Self {
-        todo!()
-    }
+    pub fn init(
+        &mut self,
+        mnemonic: String,
+        network: Network,
+        compress_public_keys: bool,
+    ) -> Result<Self, WalletError> {
+        let KeyCreationOutput { mnemonic, key } = self
+            .generate_master_key(compress_public_keys)
+            .map_err(|e| WalletError::Key(e.to_string()))?;
 
-    /// write the contents of self.keys to self.path as json
-    fn flush(&self) -> Result<(), WalletError> {
+        let master_public_key = key
+            .new_public_key()
+            .map_err(|e| WalletError::Key(e.to_string()))?;
+
+        let master_key_pair = KeyPair {
+            private_key: key.clone(),
+            public_key: master_public_key,
+            key_type: KeyType::Master,
+            index: None,
+        };
+
+        let master_node = Node {
+            parent: None,
+            previous_sibling: None,
+            next_sibling: None,
+            first_child: None,
+            last_child: None,
+            key_pair: master_key_pair,
+        };
+
+        let hardened_key = key
+            .derive_child_private_key(0, crate::ChildKeyType::Hardened)
+            .map_err(|e| WalletError::Key(e.to_string()))?;
+
         todo!()
     }
 
@@ -123,5 +152,10 @@ impl Wallet {
     /// get a keypair from self.keys
     fn get(&self, node_id: NodeId) -> Option<Node> {
         self.keys.get(node_id.index).cloned()
+    }
+
+    /// write the contents of self.keys to self.path as json
+    fn flush(&self) -> Result<(), WalletError> {
+        todo!()
     }
 }
