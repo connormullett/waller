@@ -49,28 +49,6 @@ impl Wallet {
             .generate_master_key(self.compress_public_keys)
             .map_err(|e| WalletError::Key(e.to_string()))?;
 
-        let master_public_key = key
-            .new_public_key()
-            .map_err(|e| WalletError::Key(e.to_string()))?;
-
-        let master_key_pair = KeyPair {
-            private_key: key.clone(),
-            public_key: master_public_key,
-            key_type: KeyType::Master,
-            index: None,
-        };
-
-        let master_node = Node {
-            parent: None,
-            previous_sibling: None,
-            next_sibling: None,
-            first_child: None,
-            last_child: None,
-            key_pair: master_key_pair,
-        };
-
-        let master_index = self.insert(master_node);
-
         let hardened_key = key
             .derive_child_private_key(self.next_hardened_index, ChildKeyType::Hardened)
             .map_err(|e| WalletError::Key(e.to_string()))?;
@@ -87,7 +65,7 @@ impl Wallet {
         self.next_hardened_index += 1;
 
         let hardened_node = Node {
-            parent: Some(master_index),
+            parent: self.root.clone(),
             previous_sibling: None,
             next_sibling: None,
             first_child: None,

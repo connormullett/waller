@@ -49,6 +49,7 @@ impl Display for KeyError {
     }
 }
 
+#[derive(Debug)]
 pub enum WalletError {
     Key(String),
 }
