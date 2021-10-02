@@ -45,9 +45,8 @@ impl Wallet {
     /// initialize a new wallet
     /// on success, returns the mnemonic used to create the wallet
     pub fn init(&mut self) -> Result<String, WalletError> {
-        let KeyCreationOutput { mnemonic, key } = self
-            .generate_master_key(self.compress_public_keys)
-            .map_err(|e| WalletError::Key(e.to_string()))?;
+        let KeyCreationOutput { mnemonic, key } =
+            self.generate_master_key(self.compress_public_keys)?;
 
         let hardened_key = key
             .derive_child_private_key(self.next_hardened_index, ChildKeyType::Hardened)
@@ -73,7 +72,7 @@ impl Wallet {
             key_pair: hardened_key_pair,
         };
 
-        let hardened_index = self.insert(hardened_node);
+        let hardened_index = self.insert(hardened_node)?;
 
         let child_key = hardened_key
             .derive_child_private_key(self.next_normal_index, ChildKeyType::Normal)
@@ -145,10 +144,14 @@ impl Wallet {
     pub fn generate_master_key(
         &mut self,
         compress_public_keys: bool,
-    ) -> Result<KeyCreationOutput, KeyError> {
+    ) -> Result<KeyCreationOutput, WalletError> {
         let mnemonic = generate_mnemonic();
-        let key = Key::new(mnemonic.clone(), self.network, compress_public_keys)?;
-        let pubkey = key.new_public_key()?;
+        let key = Key::new(mnemonic.clone(), self.network, compress_public_keys)
+            .map_err(|e| WalletError::Key(e.to_string()))?;
+
+        let pubkey = key
+            .new_public_key()
+            .map_err(|e| WalletError::Key(e.to_string()))?;
 
         let keypair = KeyPair {
             private_key: key.clone(),
@@ -166,22 +169,54 @@ impl Wallet {
             key_pair: keypair,
         };
 
-        let index = self.insert(node);
+        let index = self.insert(node)?;
         self.root = Some(index);
 
         Ok(KeyCreationOutput { mnemonic, key })
     }
 
     /// insert a keypair node to self.keys
-    fn insert(&mut self, node: Node) -> NodeId {
+    fn insert(&mut self, node: Node) -> Result<NodeId, WalletError> {
         let next_index = self.keys.len();
         self.keys.push(node);
-        NodeId { index: next_index }
+        self.flush()?;
+        Ok(NodeId { index: next_index })
     }
 
-    /// get a keypair from self.keys
+    /// get a keypair by its internal node id
     fn get(&self, node_id: NodeId) -> Option<Node> {
         self.keys.get(node_id.index).cloned()
+    }
+
+    /// get a key in the wallet by an address
+    pub fn get_address(&self, address: String) -> Option<Key> {
+        if let Some(id) = self.root.clone() {
+            match self.get(id) {
+                Some(node) => {
+                    // check root
+                    let key = node.clone().key_pair.private_key;
+                    let node_address = key.address();
+
+                    if node_address.is_err() {
+                        return None;
+                    }
+
+                    let node_address = node_address.unwrap();
+
+                    // root is the key
+                    if address == node_address {
+                        return Some(key);
+                    }
+
+                    // recursively check node's children from first child to last child
+                    let _current_node = node.clone();
+                    loop {}
+                }
+                None => return None,
+            }
+        } else {
+            return None;
+        }
     }
 
     /// write the contents of self.keys to self.path as json

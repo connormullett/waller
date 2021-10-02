@@ -52,6 +52,7 @@ impl Display for KeyError {
 #[derive(Debug)]
 pub enum WalletError {
     Key(String),
+    Uninitialized,
 }
 
 /// Used to determine what type of key
