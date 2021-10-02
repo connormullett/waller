@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{Key, Wallet};
+use crate::Key;
 
 /// bitcoin networks
 #[derive(Debug, Clone, Copy)]
@@ -13,12 +13,6 @@ pub enum Network {
 pub struct KeyCreationOutput {
     pub mnemonic: String,
     pub key: Key,
-}
-
-#[derive(Debug, Clone)]
-pub struct WalletCreationOutput {
-    pub mnemonic: String,
-    pub wallet: Wallet,
 }
 
 /// Generic Error type for decoding/encoding

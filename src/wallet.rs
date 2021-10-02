@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use crate::{
-    generate_mnemonic, Key, KeyCreationOutput, KeyError, KeyPair, KeyType, Network, Node, NodeId,
-    WalletError,
+    generate_mnemonic, ChildKeyType, Key, KeyCreationOutput, KeyError, KeyPair, KeyType, Network,
+    Node, NodeId, WalletError,
 };
 
 #[derive(Debug, Clone)]
@@ -11,16 +11,22 @@ pub struct Wallet {
     network: Network,
     keys: Vec<Node>,
     path: PathBuf,
+    next_hardened_index: usize,
+    next_normal_index: usize,
+    compress_public_keys: bool,
 }
 
 impl Wallet {
     /// Create a new wallet
-    pub fn new(network: Network, path: PathBuf) -> Self {
+    pub fn new(network: Network, path: PathBuf, compress_public_keys: bool) -> Self {
         Self {
             keys: vec![],
             root: None,
             network,
             path,
+            next_hardened_index: 2147483647,
+            next_normal_index: 1,
+            compress_public_keys,
         }
     }
 
@@ -36,15 +42,11 @@ impl Wallet {
         todo!()
     }
 
-    /// create a normally derived wallet
-    pub fn init(
-        &mut self,
-        mnemonic: String,
-        network: Network,
-        compress_public_keys: bool,
-    ) -> Result<Self, WalletError> {
+    /// initialize a new wallet
+    /// on success, returns the mnemonic used to create the wallet
+    pub fn init(&mut self) -> Result<String, WalletError> {
         let KeyCreationOutput { mnemonic, key } = self
-            .generate_master_key(compress_public_keys)
+            .generate_master_key(self.compress_public_keys)
             .map_err(|e| WalletError::Key(e.to_string()))?;
 
         let master_public_key = key
@@ -67,14 +69,64 @@ impl Wallet {
             key_pair: master_key_pair,
         };
 
+        let master_index = self.insert(master_node);
+
         let hardened_key = key
-            .derive_child_private_key(0, crate::ChildKeyType::Hardened)
+            .derive_child_private_key(self.next_hardened_index, ChildKeyType::Hardened)
             .map_err(|e| WalletError::Key(e.to_string()))?;
 
-        todo!()
+        let hardened_key_pair = KeyPair {
+            private_key: hardened_key.clone(),
+            public_key: hardened_key
+                .new_public_key()
+                .map_err(|e| WalletError::Key(e.to_string()))?,
+            key_type: KeyType::Hardened,
+            index: Some(self.next_hardened_index),
+        };
+
+        self.next_hardened_index += 1;
+
+        let hardened_node = Node {
+            parent: Some(master_index),
+            previous_sibling: None,
+            next_sibling: None,
+            first_child: None,
+            last_child: None,
+            key_pair: hardened_key_pair,
+        };
+
+        let hardened_index = self.insert(hardened_node);
+
+        let child_key = hardened_key
+            .derive_child_private_key(self.next_normal_index, ChildKeyType::Normal)
+            .map_err(|e| WalletError::Key(e.to_string()))?;
+
+        let child_key_pair = KeyPair {
+            private_key: child_key.clone(),
+            public_key: child_key
+                .new_public_key()
+                .map_err(|e| WalletError::Key(e.to_string()))?,
+            key_type: KeyType::Normal,
+            index: Some(self.next_normal_index),
+        };
+
+        self.next_normal_index += 1;
+
+        let child_node = Node {
+            parent: Some(hardened_index),
+            previous_sibling: None,
+            next_sibling: None,
+            first_child: None,
+            last_child: None,
+            key_pair: child_key_pair,
+        };
+
+        let _ = self.insert(child_node);
+
+        Ok(mnemonic)
     }
 
-    /// return a map of the keys in the wallet
+    /// return a list of keys in the wallet
     pub fn keys(&self) -> &Vec<Node> {
         &self.keys
     }
