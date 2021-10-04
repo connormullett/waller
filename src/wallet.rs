@@ -7,6 +7,8 @@ use crate::{
     WalletError,
 };
 
+/// A bitcoin HD wallet
+/// keys are stored in a graph using arena allocation
 #[derive(Debug, Clone)]
 pub struct Wallet {
     network: Network,
@@ -103,9 +105,10 @@ impl Wallet {
         &self.path
     }
 
+    /// change the path to a new location
     pub fn set_path(&mut self, path: PathBuf) -> Result<(), WalletError> {
         self.path = path;
-        Ok(())
+        self.flush()
     }
 
     /// returns a vec of addresses of all keys in the wallet
@@ -125,6 +128,8 @@ impl Wallet {
         Ok(output)
     }
 
+    /// create the master key of the wallet, all keys will be derived from this key
+    /// returns the mnemonic that was used to generate this key and the key itself
     pub fn generate_master_key(
         &mut self,
         compress_public_keys: bool,
