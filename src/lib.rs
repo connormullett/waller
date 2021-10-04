@@ -1,3 +1,7 @@
+//! Bitcoin HD wallet management library
+//! Can be used to persist keys, restore from mnemonic,
+//! sign transactions, and import pre-existing keys
+
 mod test;
 
 mod key;

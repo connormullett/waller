@@ -9,6 +9,7 @@ pub enum Network {
     Testnet,
 }
 
+/// The output when deriving/generating new keys
 #[derive(Debug, Clone)]
 pub struct KeyCreationOutput {
     pub mnemonic: String,
@@ -49,6 +50,7 @@ impl Display for KeyError {
     }
 }
 
+/// Basic error when something goes wrong during wallet operations
 #[derive(Debug)]
 pub enum WalletError {
     Key(String),
