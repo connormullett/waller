@@ -2,7 +2,7 @@ use bip0039::Mnemonic;
 use ecdsa::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
 use k256::{EncodedPoint, ProjectivePoint};
 use num_bigint::BigInt;
-use secp256k1::{constants::CURVE_ORDER, PublicKey, Secp256k1, SecretKey};
+use secp256k1::{constants::CURVE_ORDER, Message, PublicKey, Secp256k1, SecretKey};
 
 use crate::{
     hmac_sha512_hash, ripemd160_hash, sha256_hash, sha256_hash_twice, sha512_hash, ChildKeyType,
@@ -262,5 +262,17 @@ impl Key {
         let mut bytes = point.to_bytes().to_vec();
         bytes.append(&mut chain_code);
         Ok(bytes)
+    }
+
+    /// Sign a vector of bytes using this key
+    pub fn sign_transaction(&self, signing_bytes: Vec<u8>) -> Vec<u8> {
+        let secp = Secp256k1::new();
+        let hash = sha512_hash(&signing_bytes);
+        let transaction = Message::from_slice(hash.as_slice()).unwrap();
+        let secret = SecretKey::from_slice(self.bytes()).unwrap();
+        secp.sign(&transaction, &secret)
+            .to_string()
+            .as_bytes()
+            .to_vec()
     }
 }

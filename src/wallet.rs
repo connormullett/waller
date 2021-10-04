@@ -63,7 +63,7 @@ impl Wallet {
 
         self.next_hardened_index += 1;
 
-        let hardened_index = self.insert(hardened_key_pair)?;
+        let hardened_index = self.insert(hardened_key_pair.clone(), self.arena.root())?;
 
         let child_key = hardened_key
             .derive_child_private_key(self.next_normal_index, ChildKeyType::Normal)
@@ -80,7 +80,9 @@ impl Wallet {
 
         self.next_normal_index += 1;
 
-        let _ = self.insert(child_key_pair);
+        let _ = self.insert(child_key_pair, Some(hardened_index));
+
+        let _ = self.flush();
 
         Ok(mnemonic)
     }
@@ -142,19 +144,20 @@ impl Wallet {
             index: None,
         };
 
-        let index = self.insert(keypair)?;
+        let index = self.insert(keypair, None)?;
         self.arena.set_root(Some(index));
 
         Ok(KeyCreationOutput { mnemonic, key })
     }
 
     /// insert a keypair node to self.keys
-    fn insert(&mut self, keys: KeyPair) -> Result<usize, WalletError> {
+    fn insert(&mut self, keys: KeyPair, parent: Option<usize>) -> Result<usize, WalletError> {
         Ok(self.arena.insert(
             keys.clone(),
             keys.private_key
                 .address()
                 .map_err(|e| WalletError::Key(e.to_string()))?,
+            parent,
         ))
     }
 
