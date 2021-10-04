@@ -78,19 +78,3 @@ pub struct KeyPair {
     pub key_type: KeyType,
     pub index: Option<usize>,
 }
-
-#[derive(Clone, Debug)]
-pub struct Node {
-    pub parent: Option<NodeId>,
-    pub previous_sibling: Option<NodeId>,
-    pub next_sibling: Option<NodeId>,
-    pub first_child: Option<NodeId>,
-    pub last_child: Option<NodeId>,
-
-    pub key_pair: KeyPair,
-}
-
-#[derive(Clone, Debug)]
-pub struct NodeId {
-    pub index: usize,
-}
