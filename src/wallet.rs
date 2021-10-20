@@ -40,7 +40,7 @@ impl Wallet {
         todo!()
     }
 
-    /// Create a wallet from an existing backedup wallet file
+    /// Create a wallet from an existing backedup json wallet file
     pub fn from_wallet_file(_path: PathBuf) -> Self {
         todo!()
     }
@@ -204,6 +204,7 @@ impl Wallet {
     }
 
     /// write the contents of self.keys to self.path as json
+    /// TODO: Encryption
     fn flush(&self) -> Result<(), WalletError> {
         let json =
             serde_json::to_string_pretty(&self).map_err(|e| WalletError::Write(e.to_string()))?;
