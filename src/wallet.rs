@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use libarena::{Arena, Node};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     generate_mnemonic, ChildKeyType, Key, KeyCreationOutput, KeyError, KeyPair, KeyType, Network,
@@ -9,7 +10,7 @@ use crate::{
 
 /// A bitcoin HD wallet
 /// keys are stored in a graph using arena allocation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Wallet {
     network: Network,
     path: PathBuf,
@@ -204,6 +205,10 @@ impl Wallet {
 
     /// write the contents of self.keys to self.path as json
     fn flush(&self) -> Result<(), WalletError> {
-        todo!()
+        let json =
+            serde_json::to_string_pretty(&self).map_err(|e| WalletError::Write(e.to_string()))?;
+        fs::write(&self.path, json)
+            .map_err(|e| WalletError::Write(format!("Write Error: {}", e.to_string())))?;
+        Ok(())
     }
 }

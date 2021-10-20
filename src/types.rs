@@ -1,9 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 use crate::Key;
 
 /// bitcoin networks
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum Network {
     Mainnet,
     Testnet,
@@ -55,6 +56,8 @@ impl Display for KeyError {
 pub enum WalletError {
     Key(String),
     Uninitialized,
+    Write(String),
+    Read(String),
 }
 
 /// Used to determine what type of key
@@ -65,7 +68,7 @@ pub enum ChildKeyType {
 }
 
 /// The type of key
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum KeyType {
     Master,
     Normal,
@@ -73,7 +76,7 @@ pub enum KeyType {
 }
 
 /// An HD Key pair that can derive children keys
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyPair {
     pub private_key: Key,
     pub public_key: Vec<u8>,

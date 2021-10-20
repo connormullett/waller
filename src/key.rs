@@ -3,6 +3,7 @@ use ecdsa::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
 use k256::{EncodedPoint, ProjectivePoint};
 use num_bigint::BigInt;
 use secp256k1::{constants::CURVE_ORDER, Message, PublicKey, Secp256k1, SecretKey};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     hmac_sha512_hash, ripemd160_hash, sha256_hash, sha256_hash_twice, sha512_hash, ChildKeyType,
@@ -10,7 +11,7 @@ use crate::{
 };
 
 /// a bitcoin private key
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Key {
     bytes: Vec<u8>,
     network: Network,
