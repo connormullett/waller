@@ -36,11 +36,24 @@ impl Wallet {
     /// Restore an HD wallet, all keys lost can be recovered
     /// from the mnemonic seed used to build it, however generating
     /// every key can be very expensive computationally
-    pub fn restore(_mnemonic: String, _network: Network) -> Self {
-        todo!()
+    pub fn restore(
+        mnemonic: String,
+        network: Network,
+        compress_public_keys: bool,
+        data_path: PathBuf,
+    ) -> Result<Self, WalletError> {
+        let key = Key::new(mnemonic.clone(), network, compress_public_keys)
+            .map_err(|e| WalletError::Key(e.to_string()))?;
+
+        let mut wallet = Wallet::new(network, data_path, compress_public_keys);
+
+        let _ = wallet.create_key_chain(key, mnemonic)?;
+
+        Ok(wallet)
     }
 
     /// Create a wallet from an existing backedup json wallet file
+    /// This is a serde serialized string of the [Wallet] type
     pub fn from_wallet_file(path: PathBuf) -> Result<Self, WalletError> {
         let data = fs::read_to_string(path)
             .map_err(|e| WalletError::Read(format!("Failed to read file: {}", e.to_string())))?;
@@ -58,43 +71,7 @@ impl Wallet {
         let KeyCreationOutput { mnemonic, key } =
             self.generate_master_key(self.compress_public_keys)?;
 
-        let hardened_key = key
-            .derive_child_private_key(self.next_hardened_index, ChildKeyType::Hardened)
-            .map_err(|e| WalletError::Key(e.to_string()))?;
-
-        let hardened_key_pair = KeyPair {
-            private_key: hardened_key.clone(),
-            public_key: hardened_key
-                .new_public_key()
-                .map_err(|e| WalletError::Key(e.to_string()))?,
-            key_type: KeyType::Hardened,
-            index: Some(self.next_hardened_index),
-        };
-
-        self.next_hardened_index += 1;
-
-        let hardened_index = self.insert(hardened_key_pair.clone(), self.arena.root())?;
-
-        let child_key = hardened_key
-            .derive_child_private_key(self.next_normal_index, ChildKeyType::Normal)
-            .map_err(|e| WalletError::Key(e.to_string()))?;
-
-        let child_key_pair = KeyPair {
-            private_key: child_key.clone(),
-            public_key: child_key
-                .new_public_key()
-                .map_err(|e| WalletError::Key(e.to_string()))?,
-            key_type: KeyType::Normal,
-            index: Some(self.next_normal_index),
-        };
-
-        self.next_normal_index += 1;
-
-        let _ = self.insert(child_key_pair, Some(hardened_index));
-
-        let _ = self.flush();
-
-        Ok(mnemonic)
+        self.create_key_chain(key, mnemonic)
     }
 
     /// return a list of keys in the wallet
@@ -161,6 +138,46 @@ impl Wallet {
         self.arena.set_root(Some(index));
 
         Ok(KeyCreationOutput { mnemonic, key })
+    }
+
+    fn create_key_chain(&mut self, key: Key, mnemonic: String) -> Result<String, WalletError> {
+        let hardened_key = key
+            .derive_child_private_key(self.next_hardened_index, ChildKeyType::Hardened)
+            .map_err(|e| WalletError::Key(e.to_string()))?;
+
+        let hardened_key_pair = KeyPair {
+            private_key: hardened_key.clone(),
+            public_key: hardened_key
+                .new_public_key()
+                .map_err(|e| WalletError::Key(e.to_string()))?,
+            key_type: KeyType::Hardened,
+            index: Some(self.next_hardened_index),
+        };
+
+        self.next_hardened_index += 1;
+
+        let hardened_index = self.insert(hardened_key_pair.clone(), self.arena.root())?;
+
+        let child_key = hardened_key
+            .derive_child_private_key(self.next_normal_index, ChildKeyType::Normal)
+            .map_err(|e| WalletError::Key(e.to_string()))?;
+
+        let child_key_pair = KeyPair {
+            private_key: child_key.clone(),
+            public_key: child_key
+                .new_public_key()
+                .map_err(|e| WalletError::Key(e.to_string()))?,
+            key_type: KeyType::Normal,
+            index: Some(self.next_normal_index),
+        };
+
+        self.next_normal_index += 1;
+
+        let _ = self.insert(child_key_pair, Some(hardened_index));
+
+        let _ = self.flush();
+
+        Ok(mnemonic)
     }
 
     /// insert a keypair node to self.keys
