@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     generate_mnemonic, ChildKeyType, Key, KeyCreationOutput, KeyError, KeyPair, KeyType, Network,
-    WalletError, WalletFlushFormat,
+    WalletError,
 };
 
 /// A bitcoin HD wallet
@@ -41,8 +41,15 @@ impl Wallet {
     }
 
     /// Create a wallet from an existing backedup json wallet file
-    pub fn from_wallet_file(_path: PathBuf) -> Self {
-        todo!()
+    pub fn from_wallet_file(path: PathBuf) -> Result<Self, WalletError> {
+        let data = fs::read_to_string(path)
+            .map_err(|e| WalletError::Read(format!("Failed to read file: {}", e.to_string())))?;
+
+        let imports = serde_json::from_str(&data).map_err(|e| {
+            WalletError::Read(format!("Failed to deserialize data: {}", e.to_string()))
+        })?;
+
+        Ok(imports)
     }
 
     /// initialize a new wallet
@@ -204,27 +211,10 @@ impl Wallet {
     }
 
     /// write the contents of self.keys to self.path as json
-    /// TODO: Encryption
+    /// TODO: Encryption, key ordering
     fn flush(&self) -> Result<(), WalletError> {
-        let mut wif_keys = vec![];
-
-        for node in self.arena.nodes() {
-            let key_pair = &node.data;
-            let key = key_pair.private_key.clone();
-            wif_keys.push(key.to_wif());
-        }
-
-        let out = WalletFlushFormat {
-            network: self.network,
-            path: self.path.clone(),
-            next_hardened_index: self.next_hardened_index,
-            next_normal_index: self.next_normal_index,
-            compress_public_keys: self.compress_public_keys,
-            keys: wif_keys,
-        };
-
-        let json =
-            serde_json::to_string_pretty(&out).map_err(|e| WalletError::Write(e.to_string()))?;
+        let json = serde_json::to_string_pretty(&self.path)
+            .map_err(|e| WalletError::Write(e.to_string()))?;
         fs::write(&self.path, json)
             .map_err(|e| WalletError::Write(format!("Write Error: {}", e.to_string())))?;
         Ok(())

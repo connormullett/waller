@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, path::PathBuf};
+use std::fmt::Display;
 
 use crate::Key;
 
@@ -82,14 +82,4 @@ pub struct KeyPair {
     pub public_key: Vec<u8>,
     pub key_type: KeyType,
     pub index: Option<usize>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct WalletFlushFormat {
-    pub network: Network,
-    pub path: PathBuf,
-    pub next_hardened_index: usize,
-    pub next_normal_index: usize,
-    pub compress_public_keys: bool,
-    pub keys: Vec<String>,
 }
