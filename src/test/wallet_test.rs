@@ -6,7 +6,7 @@ use crate::{Network, Wallet};
 
 #[test]
 pub fn test_wallet_init() {
-    let mut wallet = Wallet::new(Network::Mainnet, PathBuf::from("/tmp"), false);
+    let mut wallet = Wallet::new(Network::Mainnet, PathBuf::from("/tmp"), false, true);
 
     let mnemonic = wallet.init().unwrap();
 

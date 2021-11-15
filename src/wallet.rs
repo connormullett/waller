@@ -2,6 +2,7 @@ use std::{fs, path::PathBuf};
 
 use libarena::{Arena, Node};
 use serde::{Deserialize, Serialize};
+use sodiumoxide::crypto::box_;
 
 use crate::{
     generate_mnemonic, ChildKeyType, Key, KeyCreationOutput, KeyError, KeyPair, KeyType, Network,
@@ -18,11 +19,17 @@ pub struct Wallet {
     next_normal_index: usize,
     compress_public_keys: bool,
     arena: Arena<KeyPair, String>,
+    encrypted: bool,
 }
 
 impl Wallet {
     /// Create a new wallet
-    pub fn new(network: Network, path: PathBuf, compress_public_keys: bool) -> Self {
+    pub fn new(
+        network: Network,
+        path: PathBuf,
+        compress_public_keys: bool,
+        encrypted: bool,
+    ) -> Self {
         Self {
             arena: Arena::new(),
             network,
@@ -30,6 +37,7 @@ impl Wallet {
             next_hardened_index: 2147483647,
             next_normal_index: 1,
             compress_public_keys,
+            encrypted,
         }
     }
 
@@ -41,11 +49,12 @@ impl Wallet {
         network: Network,
         compress_public_keys: bool,
         data_path: PathBuf,
+        encrypted: bool,
     ) -> Result<Self, WalletError> {
         let key = Key::new(mnemonic.clone(), network, compress_public_keys)
             .map_err(|e| WalletError::Key(e.to_string()))?;
 
-        let mut wallet = Wallet::new(network, data_path, compress_public_keys);
+        let mut wallet = Wallet::new(network, data_path, compress_public_keys, encrypted);
 
         let _ = wallet.create_key_chain(key, mnemonic)?;
 
@@ -111,6 +120,11 @@ impl Wallet {
             output.push(address);
         }
         Ok(output)
+    }
+
+    /// Change and set the use of encryption or none
+    pub fn set_encryption(&mut self, encrypted: bool) {
+        self.encrypted = encrypted;
     }
 
     /// create the master key of the wallet, all keys will be derived from this key
@@ -228,12 +242,20 @@ impl Wallet {
     }
 
     /// write the contents of self.keys to self.path as json
-    /// TODO: Encryption, key ordering
+    /// TODO: key ordering, encryption
     fn flush(&self) -> Result<(), WalletError> {
         let json = serde_json::to_string_pretty(&self.path)
             .map_err(|e| WalletError::Write(e.to_string()))?;
-        fs::write(&self.path, json)
-            .map_err(|e| WalletError::Write(format!("Write Error: {}", e.to_string())))?;
-        Ok(())
+
+        match self.encrypted {
+            false => {
+                fs::write(&self.path, json)
+                    .map_err(|e| WalletError::Write(format!("Write Error: {}", e.to_string())))?;
+                Ok(())
+            }
+            true => {
+                todo!();
+            }
+        }
     }
 }
