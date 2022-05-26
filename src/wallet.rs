@@ -2,7 +2,6 @@ use std::{fs, path::PathBuf};
 
 use libarena::{Arena, Node};
 use serde::{Deserialize, Serialize};
-use sodiumoxide::crypto::box_;
 
 use crate::{
     generate_mnemonic, ChildKeyType, Key, KeyCreationOutput, KeyError, KeyPair, KeyType, Network,

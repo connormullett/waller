@@ -5,6 +5,7 @@
 mod test;
 
 mod key;
+mod transaction;
 mod types;
 mod utils;
 mod wallet;
@@ -12,6 +13,7 @@ mod wallet;
 use bip0039::Count;
 use bip0039::Mnemonic;
 pub use key::*;
+pub use transaction::*;
 pub use types::*;
 pub use utils::*;
 pub use wallet::*;
