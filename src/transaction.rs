@@ -1,5 +1,19 @@
+/// a transaction in Raw format
 #[derive(Debug)]
-pub struct RawTransaction {}
+pub struct RawTransaction {
+    /// transaction version number. currently either 1 or 2
+    version: i32,
+    /// the number of inputs in this transaction
+    tx_in_count: usize,
+    /// the inputs to the transaction
+    tx_in: Vec<TransactionInput>,
+    /// number of outputs in this transaction
+    tx_out_count: usize,
+    /// vector of transaction outputs
+    tx_out: Vec<TransactionOutput>,
+    /// a timestamp or block number
+    lock_time: u32,
+}
 
 #[derive(Debug)]
 pub struct TransactionInput {
