@@ -266,7 +266,7 @@ impl Key {
     }
 
     /// Sign a vector of bytes using this key
-    pub fn sign_transaction(&self, signing_bytes: Vec<u8>) -> Vec<u8> {
+    pub fn sign_data(&self, signing_bytes: Vec<u8>) -> Vec<u8> {
         let secp = Secp256k1::new();
         let hash = sha512_hash(&signing_bytes);
         let transaction = Message::from_slice(hash.as_slice()).unwrap();

@@ -5,9 +5,29 @@ pub enum TransactionVersion {
     One,
 }
 
-/// a transaction in Raw format
-#[derive(Debug, Clone)]
+/// A bitcoin transaction in its raw format
 pub struct RawTransaction {
+    data: Vec<u8>,
+}
+
+impl RawTransaction {
+    pub fn new(data: Vec<u8>) -> Self {
+        Self { data }
+    }
+
+    pub fn parse(&self) -> Transaction {
+        // todo: use nom?
+        todo!()
+    }
+
+    pub fn data(&self) -> Vec<u8> {
+        self.data.clone()
+    }
+}
+
+/// A bitcoin Transaction
+#[derive(Debug, Clone)]
+pub struct Transaction {
     /// transaction version number. currently either 1 or 2
     version: TransactionVersion,
     /// the inputs to the transaction
@@ -18,7 +38,7 @@ pub struct RawTransaction {
     lock_time: u128,
 }
 
-impl RawTransaction {
+impl Transaction {
     pub fn new(
         inputs: Vec<TransactionInput>,
         outputs: Vec<TransactionOutput>,
