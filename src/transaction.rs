@@ -82,14 +82,27 @@ impl RawTransaction {
 pub struct TransactionInput {
     /// previous output being spent
     previous_output: OutPoint,
-    /// number of bytes in sig script. Max is 10_000
-    script_bytes: usize,
-    /// a script-language script with satisfies the conditions
-    /// placed in the outpoints pubkey script
-    /// should only contain data pushes
+    /// The script to unlock the previous output to be used
+    /// as an input in this transaction
+    /// to solve this script, the owner of the pub key
+    /// needs to provide the original pub key + a valid
+    /// signature for it
+    /// this looks like <sig><pubkey> + pubkey script + OP_CHECKSIG
     signature_script: String,
-    /// sequence number. Default is 0xffffffff
-    sequence: u32,
+}
+
+impl TransactionInput {
+    pub fn new() -> Self {
+        todo!()
+    }
+
+    pub fn script_bytes(&self) -> usize {
+        self.signature_script.as_bytes().len()
+    }
+
+    pub fn previous_output(&self) -> &OutPoint {
+        &self.previous_output
+    }
 }
 
 /// a tx can have multiple outputs so the Outpoint
@@ -105,6 +118,20 @@ pub struct OutPoint {
     index: i32,
 }
 
+impl OutPoint {
+    pub fn new(tx_id: String, index: i32) -> Self {
+        Self { hash: tx_id, index }
+    }
+
+    pub fn hash(&self) -> String {
+        self.hash.clone()
+    }
+
+    pub fn index(&self) -> i32 {
+        self.index
+    }
+}
+
 /// each output spends a certain number of sats
 /// placing them under control of anyone who can
 /// satisfy the provided pubkey script
@@ -112,8 +139,21 @@ pub struct OutPoint {
 pub struct TransactionOutput {
     /// number of satoshis to spend
     value: i64,
-    /// number of bytes in the pubkey script. max is 10_000 bytes
-    pk_script_bytes: usize,
     /// defines the conditions which must be satisfied to spend this output
     pk_script: String,
+}
+
+impl TransactionOutput {
+    pub fn pubkey_script() {
+        // OP_DUP OP_HASH160 <pubkey hash> OP_EQUALVERIFY OP_CHECKSIG
+        todo!()
+    }
+
+    pub fn value(&self) -> i64 {
+        self.value
+    }
+
+    pub fn script_bytes(&self) -> usize {
+        self.pk_script.as_bytes().len()
+    }
 }
