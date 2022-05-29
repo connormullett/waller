@@ -46,6 +46,14 @@ impl RawTransaction {
         }
     }
 
+    pub fn get_input(&self, index: usize) -> Option<&TransactionInput> {
+        self.tx_in.get(index)
+    }
+
+    pub fn get_output(&self, index: usize) -> Option<&TransactionOutput> {
+        self.tx_out.get(index)
+    }
+
     pub fn tx_id(&self) -> String {
         // hash all tx data with sha256 twice
         todo!()
@@ -92,8 +100,11 @@ pub struct TransactionInput {
 }
 
 impl TransactionInput {
-    pub fn new() -> Self {
-        todo!()
+    pub fn new(output: OutPoint, signature_script: String) -> Self {
+        Self {
+            previous_output: output,
+            signature_script,
+        }
     }
 
     pub fn script_bytes(&self) -> usize {
