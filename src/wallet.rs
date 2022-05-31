@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     generate_mnemonic, ChildKeyType, Key, KeyCreationOutput, KeyError, KeyPair, KeyType, Network,
-    Transaction, TransactionInput, TransactionOutput, WalletError,
+    Transaction, TransactionInput, TransactionOutput, TransactionType, WalletError,
 };
 
 /// A bitcoin HD wallet
@@ -156,12 +156,13 @@ impl Wallet {
     /// Create a new transaction using a keypair
     pub fn new_transaction(
         &self,
+        tx_type: TransactionType,
         key: KeyPair,
         inputs: Vec<TransactionInput>,
         outputs: Vec<TransactionOutput>,
         lock_time: Option<u128>,
     ) -> Transaction {
-        Transaction::new(inputs, outputs, lock_time)
+        Transaction::new(tx_type, inputs, outputs, lock_time)
     }
 
     fn create_key_chain(&mut self, key: Key, mnemonic: String) -> Result<String, WalletError> {

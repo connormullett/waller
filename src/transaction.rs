@@ -5,29 +5,24 @@ pub enum TransactionVersion {
     One,
 }
 
-/// A bitcoin transaction in its raw format
-pub struct RawTransaction {
-    data: Vec<u8>,
+impl TransactionVersion {
+    pub fn as_ver_string(&self) -> String {
+        match self {
+            TransactionVersion::One => "01000000".to_string(),
+        }
+    }
 }
 
-impl RawTransaction {
-    pub fn new(data: Vec<u8>) -> Self {
-        Self { data }
-    }
-
-    pub fn parse(&self) -> Transaction {
-        // todo: use nom?
-        todo!()
-    }
-
-    pub fn data(&self) -> Vec<u8> {
-        self.data.clone()
-    }
+#[derive(Debug, Clone)]
+pub enum TransactionType {
+    Pay2PubKeyHash,
 }
 
 /// A bitcoin Transaction
 #[derive(Debug, Clone)]
 pub struct Transaction {
+    /// The type of the transaction
+    tx_type: TransactionType,
     /// transaction version number. currently either 1 or 2
     version: TransactionVersion,
     /// the inputs to the transaction
@@ -40,12 +35,14 @@ pub struct Transaction {
 
 impl Transaction {
     pub fn new(
+        tx_type: TransactionType,
         inputs: Vec<TransactionInput>,
         outputs: Vec<TransactionOutput>,
         lock_time: Option<u128>,
     ) -> Self {
         match lock_time {
             Some(time) => Self {
+                tx_type,
                 version: TransactionVersion::One,
                 tx_in: inputs,
                 tx_out: outputs,
@@ -54,6 +51,7 @@ impl Transaction {
             None => {
                 let start = SystemTime::now();
                 Self {
+                    tx_type,
                     version: TransactionVersion::One,
                     tx_in: inputs,
                     tx_out: outputs,
@@ -64,6 +62,32 @@ impl Transaction {
                 }
             }
         }
+    }
+
+    pub fn to_raw(&self) -> String {
+        // needs to be converted to push hex values and check
+        // little endianness of version, txid, vout, value, and locktime
+        let mut output = String::new();
+        output.push_str(&self.version.as_ver_string());
+        let num_inputs = self.inputs().len();
+        output.push_str(&num_inputs.to_string());
+        for input in self.inputs().iter() {
+            let tx_id = input.previous_output.hash();
+            let vout = input.previous_output.index();
+            output.push_str(&tx_id);
+            output.push_str(&vout.to_string());
+            output.push_str(&input.previous_output.hash.len().to_string());
+            output.push_str(&input.previous_output.hash());
+            output.push_str("ffffffff");
+        }
+        output.push_str(&self.outputs().len().to_string());
+        for out in self.outputs().iter() {
+            output.push_str(&out.value().to_string());
+            output.push_str(&out.pk_script.len().to_string());
+            output.push_str(&out.pk_script);
+        }
+        output.push_str(&self.lock_time().to_string());
+        output
     }
 
     pub fn get_input(&self, index: usize) -> Option<&TransactionInput> {
@@ -77,6 +101,10 @@ impl Transaction {
     pub fn tx_id(&self) -> String {
         // hash all tx data with sha256 twice
         todo!()
+    }
+
+    pub fn tx_type(&self) -> TransactionType {
+        self.tx_type.clone()
     }
 
     pub fn version(&self) -> TransactionVersion {
