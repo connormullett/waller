@@ -154,6 +154,7 @@ impl Wallet {
     }
 
     /// Create a new transaction using a keypair
+    /// supported transaction types are P2PKH and P2SH
     pub fn new_transaction(
         &self,
         tx_type: TransactionType,

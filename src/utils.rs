@@ -1,3 +1,4 @@
+use core::fmt::Write;
 use hmac_sha512::HMAC;
 use rand::prelude::*;
 use ripemd160::Ripemd160;
@@ -11,6 +12,32 @@ pub fn get_random_bytes(num_bytes: usize) -> Vec<u8> {
     let mut buf = vec![0; num_bytes];
     rng.fill(buf.as_mut_slice());
     buf
+}
+
+#[inline]
+#[doc(hidden)]
+pub fn bytes_to_hex(bytes: &Vec<u8>) -> String {
+    let n = bytes.len();
+
+    let mut output = String::with_capacity(2 * n);
+    for byte in bytes {
+        write!(output, "{:02x}", byte).unwrap();
+    }
+
+    output
+}
+
+#[inline]
+#[doc(hidden)]
+pub fn reverse_byte_order(s: String) -> String {
+    let string_to_bytes = hex::decode(s).unwrap();
+    let mut bytes_reversed = Vec::new();
+
+    for i in string_to_bytes.iter().rev() {
+        bytes_reversed.push(*i);
+    }
+
+    hex::encode(bytes_reversed)
 }
 
 #[inline]
