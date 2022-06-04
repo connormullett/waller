@@ -176,14 +176,24 @@ pub struct TransactionInput {
     previous_output: OutPoint,
     /// The script to unlock the previous output to be used
     /// as an input in this transaction
-    /// to solve this script, the owner of the pub key
+    /// to validate this script, the owner of the pub key
     /// needs to provide the original pub key + a valid
     /// signature for it
-    /// this looks like <sig><pubkey> + pubkey script + OP_CHECKSIG
     signature_script: Vec<u8>,
+    // the pk_script of the UTXO to redeem
+    pk_script: Vec<u8>,
 }
 
 impl TransactionInput {
+    // todo: when signing transctions build a full transaction
+    // and replace the non-existent sigscripts with the tx's
+    // pk scripts as placeholder. append a 4 byte hash code type (01000000)
+    // double hash the entire structure with sha256
+    // sign the hash with a private key
+    // append a 1 byte hash-code type (01)
+    // create a script sig by cat <len sig + 1> <sig> <len pk> <pk>
+    // replace script sig placeholders with this new sigscript
+    // remove appended value from transaction (field after lock time)
     pub fn new(output: OutPoint, signature_script: Vec<u8>) -> Self {
         Self {
             previous_output: output,
