@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::{bytes_to_hex, reverse_byte_order};
+use crate::reverse_byte_order;
 
 #[derive(Debug, Clone)]
 pub enum TransactionVersion {
@@ -70,7 +70,7 @@ impl Transaction {
         let mut output = String::new();
 
         // version
-        let version = bytes_to_hex(&vec![01, 00, 00, 00]);
+        let version = self.version.as_ver_string();
         output.push_str(&version);
 
         // num inputs

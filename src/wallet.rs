@@ -158,12 +158,13 @@ impl Wallet {
     pub fn new_transaction(
         &self,
         tx_type: TransactionType,
-        key: KeyPair,
+        _key: KeyPair,
         inputs: Vec<TransactionInput>,
         outputs: Vec<TransactionOutput>,
         lock_time: Option<u128>,
     ) -> Transaction {
-        Transaction::new(tx_type, inputs, outputs, lock_time)
+        Transaction::new(tx_type, inputs, outputs, lock_time);
+        todo!("create pk and sig scripts")
     }
 
     fn create_key_chain(&mut self, key: Key, mnemonic: String) -> Result<String, WalletError> {
