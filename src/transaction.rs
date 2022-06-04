@@ -66,6 +66,15 @@ impl Transaction {
         }
     }
 
+    // todo: when signing transctions build a full transaction
+    // and replace the non-existent sigscripts with the tx's
+    // pk scripts as placeholder. append a 4 byte hash code type (01000000)
+    // double hash the entire structure with sha256
+    // sign the hash with a private key
+    // append a 1 byte hash-code type (01)
+    // create a script sig by cat <len sig + 1> <sig> <len pk> <pk>
+    // replace script sig placeholders with this new sigscript
+    // remove appended value from transaction (field after lock time)
     pub fn to_raw(&self) -> String {
         let mut output = String::new();
 
@@ -185,19 +194,12 @@ pub struct TransactionInput {
 }
 
 impl TransactionInput {
-    // todo: when signing transctions build a full transaction
-    // and replace the non-existent sigscripts with the tx's
-    // pk scripts as placeholder. append a 4 byte hash code type (01000000)
-    // double hash the entire structure with sha256
-    // sign the hash with a private key
-    // append a 1 byte hash-code type (01)
-    // create a script sig by cat <len sig + 1> <sig> <len pk> <pk>
-    // replace script sig placeholders with this new sigscript
-    // remove appended value from transaction (field after lock time)
-    pub fn new(output: OutPoint, signature_script: Vec<u8>) -> Self {
+    pub fn new(utxo: TransactionOutput, tx_id: String, index: i32) -> Self {
+        let outpoint = OutPoint { hash: tx_id, index };
         Self {
-            previous_output: output,
-            signature_script,
+            previous_output: outpoint,
+            signature_script: vec![],
+            utxo_pk_script: utxo.pk_script,
         }
     }
 
