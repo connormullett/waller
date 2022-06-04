@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::reverse_byte_order;
+use crate::{reverse_byte_order, ripemd160_hash, sha256_hash, Key, KeyPair};
 
 #[derive(Debug, Clone)]
 pub enum TransactionVersion {
@@ -240,9 +240,19 @@ pub struct TransactionOutput {
 }
 
 impl TransactionOutput {
-    pub fn pubkey_script() {
-        // OP_DUP OP_HASH160 <pubkey hash> OP_EQUALVERIFY OP_CHECKSIG
-        todo!()
+    pub fn new(tx_type: TransactionType, key: Key, value: i64) -> Self {
+        let pk_script = match tx_type {
+            TransactionType::Pay2PubKeyHash => {
+                let sha_hash = sha256_hash(&key.new_public_key().unwrap());
+                let pk_hash = ripemd160_hash(&sha_hash);
+                format!("76a914{}88ac", hex::encode(pk_hash))
+            }
+        };
+
+        Self {
+            value,
+            pk_script: hex::decode(pk_script).unwrap(),
+        }
     }
 
     pub fn value(&self) -> i64 {
@@ -256,7 +266,9 @@ impl TransactionOutput {
 
 #[cfg(test)]
 mod test {
-    use crate::{OutPoint, Transaction, TransactionInput, TransactionOutput, TransactionType};
+    use crate::{
+        Key, Network, OutPoint, Transaction, TransactionInput, TransactionOutput, TransactionType,
+    };
 
     #[test]
     pub fn construct_transaction_and_get_raw_data() {
@@ -280,5 +292,16 @@ mod test {
 
         let expected = "01000000017967a5185e907a25225574544c31f7b059c1a191d65b53dcc1554d339c4f9efc010000006a47304402206a2eb16b7b92051d0fa38c133e67684ed064effada1d7f925c842da401d4f22702201f196b10e6e4b4a9fff948e5c5d71ec5da53e90529c8dbd122bff2b1d21dc8a90121039b7bcd0824b9a9164f7ba098408e63e5b7e3cf90835cceb19868f54f8961a825ffffffff014baf2100000000001976a914db4d1141d0048b1ed15839d0b7a4c488cd368b0e88ac00000000".to_string();
         assert_eq!(expected, transaction.to_raw());
+    }
+
+    #[test]
+    pub fn new_tx_output() {
+        let mnemonic = String::from(
+            "fancy lemon deliver stock castle eye answer palm nerve exchange sibling asset",
+        );
+        let network = Network::Mainnet;
+
+        let key = Key::new(mnemonic, network, true).unwrap();
+        let _tx_output = TransactionOutput::new(TransactionType::Pay2PubKeyHash, key, 2207563);
     }
 }
