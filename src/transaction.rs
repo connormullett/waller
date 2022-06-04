@@ -180,8 +180,8 @@ pub struct TransactionInput {
     /// needs to provide the original pub key + a valid
     /// signature for it
     signature_script: Vec<u8>,
-    // the pk_script of the UTXO to redeem
-    pk_script: Vec<u8>,
+    // the pk_script of the utxo to be redeemed
+    utxo_pk_script: Vec<u8>,
 }
 
 impl TransactionInput {
