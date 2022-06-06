@@ -1,5 +1,3 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crate::{reverse_byte_order, ripemd160_hash, sha256_hash, sha256_hash_twice, Key};
 
 #[derive(Debug, Clone)]
@@ -50,19 +48,13 @@ impl Transaction {
                 tx_out: outputs,
                 lock_time: time,
             },
-            None => {
-                let start = SystemTime::now();
-                Self {
-                    tx_type,
-                    version: TransactionVersion::One,
-                    tx_in: inputs,
-                    tx_out: outputs,
-                    lock_time: start
-                        .duration_since(UNIX_EPOCH)
-                        .expect("time went backwards")
-                        .as_millis(),
-                }
-            }
+            None => Self {
+                tx_type,
+                version: TransactionVersion::One,
+                tx_in: inputs,
+                tx_out: outputs,
+                lock_time: 0,
+            },
         }
     }
 
@@ -127,7 +119,7 @@ impl Transaction {
         presigned_tx
     }
 
-    /// sign the transaction using a key
+    /// get a signed copy of this transaction using a key
     pub fn sign(&self, key: Key) -> String {
         let mut presigned_tx = self.pre_sign();
         presigned_tx.push_str(&format!("{:08x}", 1));
