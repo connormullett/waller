@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 rand = { version = "0.8.4", features = ["std_rng"] }
-secp256k1 = { version = "0.20.3", features = ["rand"] }
+secp256k1 = { version = "0.20.3", features = ["rand", "bitcoin_hashes"] }
 k256 = { version = "0.9.6", features = ["ecdsa-core", "arithmetic"]}
 sha2 = "0.9.8"
 ecdsa = "0.12.4"

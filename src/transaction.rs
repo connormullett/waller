@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::{reverse_byte_order, ripemd160_hash, sha256_hash, Key, KeyPair};
+use crate::{reverse_byte_order, ripemd160_hash, sha256_hash, sha256_hash_twice, Key};
 
 #[derive(Debug, Clone)]
 pub enum TransactionVersion {
@@ -66,16 +66,88 @@ impl Transaction {
         }
     }
 
-    // todo: when signing transctions build a full transaction
-    // and replace the non-existent sigscripts with the tx's
-    // pk scripts as placeholder. append a 4 byte hash code type (01000000)
-    // double hash the entire structure with sha256
-    // sign the hash with a private key
-    // append a 1 byte hash-code type (01)
-    // create a script sig by cat <len sig + 1> <sig> <len pk> <pk>
-    // replace script sig placeholders with this new sigscript
-    // remove appended value from transaction (field after lock time)
-    pub fn to_raw(&self) -> String {
+    /// create a presigned transaction
+    pub fn pre_sign(&self) -> String {
+        let mut presigned_tx = String::new();
+
+        // version
+        let version = self.version.as_ver_string();
+        presigned_tx.push_str(&version);
+
+        // num inputs
+        let num_inputs = self.inputs().len();
+        let num_inputs_hex = format!("{:02x}", num_inputs);
+        presigned_tx.push_str(&num_inputs_hex);
+
+        // UTXOs to be spent
+        for input in self.inputs().iter() {
+            // TXID
+            let tx_id = input.previous_output.hash();
+            presigned_tx.push_str(&tx_id);
+
+            // VOUTS
+            let vout = input.previous_output.index();
+            let vout_hex = reverse_byte_order(format!("{:08x}", vout));
+            presigned_tx.push_str(&vout_hex);
+
+            // num bytes in script sig
+            let bytes_hex = format!("{:02x}", input.utxo_pk_script.len());
+            presigned_tx.push_str(&bytes_hex);
+
+            // placeholder script sig
+            presigned_tx.push_str(&hex::encode(input.utxo_pk_script.clone()));
+        }
+
+        // sequence
+        presigned_tx.push_str("ffffffff");
+
+        // num outputs
+        let num_outputs = self.outputs().len();
+        let num_outputs_hex = reverse_byte_order(format!("{:02x}", num_outputs));
+        presigned_tx.push_str(&num_outputs_hex);
+
+        // outputs
+        for out in self.outputs().iter() {
+            // value
+            let value = format!("{:016x}", out.value());
+            presigned_tx.push_str(&value);
+
+            // pk script bytes
+            let bytes_hex = format!("{:02x}", out.script_bytes());
+            presigned_tx.push_str(&bytes_hex);
+
+            // pk script
+            presigned_tx.push_str(&hex::encode(out.pk_script.clone()));
+        }
+
+        // locktime
+        let lock_time = format!("{:08x}", self.lock_time);
+        presigned_tx.push_str(&lock_time);
+
+        presigned_tx
+    }
+
+    /// sign the transaction using a key
+    pub fn sign(&self, key: Key) -> String {
+        let mut presigned_tx = self.pre_sign();
+        presigned_tx.push_str(&format!("{:08x}", 1));
+
+        // sign transaction
+        let hash = sha256_hash_twice(&presigned_tx.as_bytes().to_vec());
+
+        let mut signature = key.sign_data(hash);
+        signature.push(0x01);
+
+        let pk = key.new_public_key().unwrap();
+
+        let sig_script = format!(
+            "{:02x}{}{:02x}{}",
+            signature.len(),
+            hex::encode(signature),
+            pk.len(),
+            hex::encode(pk)
+        );
+
         let mut output = String::new();
 
         // version
@@ -99,11 +171,11 @@ impl Transaction {
             output.push_str(&vout_hex);
 
             // num bytes in script sig
-            let bytes_hex = format!("{:02x}", input.script_bytes());
+            let bytes_hex = format!("{:02x}", sig_script.len());
             output.push_str(&bytes_hex);
 
-            // script sig
-            output.push_str(&hex::encode(input.signature_script.clone()));
+            // actual sig script
+            output.push_str(&hex::encode(sig_script.clone()));
         }
 
         // sequence
@@ -198,6 +270,7 @@ impl TransactionInput {
         let outpoint = OutPoint { hash: tx_id, index };
         Self {
             previous_output: outpoint,
+            // left blank until signed
             signature_script: vec![],
             utxo_pk_script: utxo.pk_script,
         }
@@ -273,47 +346,5 @@ impl TransactionOutput {
 
     pub fn script_bytes(&self) -> usize {
         self.pk_script.len()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::{
-        Key, Network, OutPoint, Transaction, TransactionInput, TransactionOutput, TransactionType,
-    };
-
-    #[test]
-    pub fn construct_transaction_and_get_raw_data() {
-        let utxo = OutPoint::new(
-            "7967a5185e907a25225574544c31f7b059c1a191d65b53dcc1554d339c4f9efc".to_string(),
-            1,
-        );
-        let signature_script = hex::decode("47304402206a2eb16b7b92051d0fa38c133e67684ed064effada1d7f925c842da401d4f22702201f196b10e6e4b4a9fff948e5c5d71ec5da53e90529c8dbd122bff2b1d21dc8a90121039b7bcd0824b9a9164f7ba098408e63e5b7e3cf90835cceb19868f54f8961a825").unwrap();
-        let input = TransactionInput::new(utxo, signature_script);
-        let output = TransactionOutput {
-            value: 5453613957652676608,
-            pk_script: hex::decode("76a914db4d1141d0048b1ed15839d0b7a4c488cd368b0e88ac").unwrap(),
-        };
-
-        let transaction = Transaction::new(
-            TransactionType::Pay2PubKeyHash,
-            vec![input],
-            vec![output],
-            Some(00000000),
-        );
-
-        let expected = "01000000017967a5185e907a25225574544c31f7b059c1a191d65b53dcc1554d339c4f9efc010000006a47304402206a2eb16b7b92051d0fa38c133e67684ed064effada1d7f925c842da401d4f22702201f196b10e6e4b4a9fff948e5c5d71ec5da53e90529c8dbd122bff2b1d21dc8a90121039b7bcd0824b9a9164f7ba098408e63e5b7e3cf90835cceb19868f54f8961a825ffffffff014baf2100000000001976a914db4d1141d0048b1ed15839d0b7a4c488cd368b0e88ac00000000".to_string();
-        assert_eq!(expected, transaction.to_raw());
-    }
-
-    #[test]
-    pub fn new_tx_output() {
-        let mnemonic = String::from(
-            "fancy lemon deliver stock castle eye answer palm nerve exchange sibling asset",
-        );
-        let network = Network::Mainnet;
-
-        let key = Key::new(mnemonic, network, true).unwrap();
-        let _tx_output = TransactionOutput::new(TransactionType::Pay2PubKeyHash, key, 2207563);
     }
 }
