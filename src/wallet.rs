@@ -8,7 +8,7 @@ use crate::{
     Transaction, TransactionInput, TransactionOutput, TransactionType, WalletError,
 };
 
-/// A bitcoin HD wallet
+/// A bitcoin hardened wallet
 /// keys are stored in a graph using arena allocation
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Wallet {
@@ -60,7 +60,7 @@ impl Wallet {
         Ok(wallet)
     }
 
-    /// Create a wallet from an existing backedup json wallet file
+    /// Create a wallet from an existing backed up json wallet file
     /// This is a serde serialized string of the [Wallet] type
     pub fn from_wallet_file(path: PathBuf) -> Result<Self, WalletError> {
         let data = fs::read_to_string(path)
@@ -99,9 +99,8 @@ impl Wallet {
     }
 
     /// change the path to a new location
-    pub fn set_path(&mut self, path: PathBuf) -> Result<(), WalletError> {
+    pub fn set_path(&mut self, path: PathBuf) {
         self.path = path;
-        self.flush()
     }
 
     /// returns a vec of addresses of all keys in the wallet
@@ -202,8 +201,6 @@ impl Wallet {
 
         let _ = self.insert(child_key_pair, Some(hardened_index));
 
-        let _ = self.flush();
-
         Ok(mnemonic)
     }
 
@@ -253,22 +250,5 @@ impl Wallet {
             return None;
         }
     }
-
-    /// write the contents of self.keys to self.path as json
-    /// TODO: key ordering, encryption
-    fn flush(&self) -> Result<(), WalletError> {
-        let json = serde_json::to_string_pretty(&self.path)
-            .map_err(|e| WalletError::Write(e.to_string()))?;
-
-        match self.encrypted {
-            false => {
-                fs::write(&self.path, json)
-                    .map_err(|e| WalletError::Write(format!("Write Error: {}", e.to_string())))?;
-                Ok(())
-            }
-            true => {
-                todo!();
-            }
-        }
-    }
 }
+
